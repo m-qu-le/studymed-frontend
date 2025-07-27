@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api'; // MỚI: Import api từ '../services/api'
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
@@ -26,13 +26,8 @@ function DashboardPage() {
     try {
       setLoadingQuizzes(true);
       setError(null);
-      const token = getToken();
-      // Quizzes trên Dashboard có thể là của cá nhân hoặc hệ thống.
-      // Để đơn giản, nếu có token thì gửi lên, backend sẽ quyết định quiz nào được trả về.
-      // Hoặc có thể thêm filter: axios.get(`http://localhost:5001/api/quizzes?system=true`, ...)
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-      const response = await axios.get('http://localhost:5001/api/quizzes', { headers });
+      // MỚI: Sử dụng api.get. Interceptor sẽ tự thêm Authorization header
+      const response = await api.get('/api/quizzes'); 
       setQuizzes(response.data);
     } catch (err) {
       console.error('Lỗi khi lấy danh sách bộ đề:', err);
@@ -74,17 +69,8 @@ function DashboardPage() {
   const handleDeleteQuiz = async (quizId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa bộ đề này không?')) {
       try {
-        const token = getToken();
-        if (!token) {
-          setAlert('Bạn cần đăng nhập để xóa bộ đề.', 'error');
-          logout();
-          return;
-        }
-        await axios.delete(`http://localhost:5001/api/quizzes/${quizId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        // MỚI: Sử dụng api.delete. Interceptor sẽ tự thêm Authorization header
+        await api.delete(`/api/quizzes/${quizId}`); 
         setAlert('Bộ đề đã được xóa thành công!', 'success');
         fetchQuizzes();
       } catch (err) {
@@ -117,16 +103,13 @@ function DashboardPage() {
     navigate(`/quiz/edit/${quizId}`);
   };
 
-  // Xử lý khi nhấn nút "Làm Bài"
   const handleStartQuizClick = (quizId) => {
     setSelectedQuizIdForOptions(quizId);
-    setShowQuizOptionsModal(true); // Hiển thị modal tùy chọn
+    setShowQuizOptionsModal(true);
   };
 
-  // Xử lý khi bắt đầu làm bài từ modal
   const handleConfirmStartQuiz = () => {
     setShowQuizOptionsModal(false);
-    // Điều hướng đến trang làm bài với các tùy chọn
     navigate(`/quiz/take/${selectedQuizIdForOptions}?mode=${quizMode}&shuffle=${shuffleQuestions}`);
   };
 
@@ -164,8 +147,8 @@ function DashboardPage() {
             <Button primary onClick={handleCreateNewQuiz}>
               Tạo Bộ Đề Mới
             </Button>
-            {isAuthenticated && ( // CHỈ HIỂN THỊ NÚT NÀY NẾU ĐÃ ĐĂNG NHẬP
-                <Button secondary onClick={() => navigate('/bookmarks')}> {/* ĐÃ THÊM NÚT BOOKMARK */}
+            {isAuthenticated && (
+                <Button secondary onClick={() => navigate('/bookmarks')}>
                     Câu Hỏi Đã Lưu
                 </Button>
             )}
@@ -191,15 +174,12 @@ function DashboardPage() {
                   Tạo bởi: {quiz.createdBy ? quiz.createdBy.username : 'Ẩn danh'}
                 </p>
                 <div className="flex justify-end space-x-2">
-                  {/* Nút "Quản lý" thay cho "Xem/Sửa" */}
                   <Button secondary onClick={() => handleManageQuiz(quiz._id)} className="text-xs py-1 px-3">
                     Quản lý
                   </Button>
-                  {/* Nút "Làm Bài" */}
                   <Button primary onClick={() => handleStartQuizClick(quiz._id)} className="text-xs py-1 px-3">
                     Làm Bài
                   </Button>
-                  {/* Nút "Xóa" */}
                   <Button className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-3" onClick={() => handleDeleteQuiz(quiz._id)}>
                     Xóa
                   </Button>
@@ -213,7 +193,7 @@ function DashboardPage() {
       {/* Modal Tùy chọn làm bài */}
       {showQuizOptionsModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl shadow-lg max-w-sm w-full relative"> {/* Áp dụng bo tròn, đổ bóng */}
+          <div className="bg-white p-8 rounded-xl shadow-lg max-w-sm w-full relative">
             <h2 className="text-2xl font-bold mb-4 text-center">Tùy Chọn Làm Bài</h2>
 
             <div className="mb-6">

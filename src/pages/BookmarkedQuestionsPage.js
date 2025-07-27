@@ -1,7 +1,7 @@
 // src/pages/BookmarkedQuestionsPage.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api'; // MỚI: Import api từ '../services/api'
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import Button from '../components/Button';
@@ -12,7 +12,7 @@ function BookmarkedQuestionsPage() {
   const { isAuthenticated, loading: authLoading, logout } = useAuth();
   const { setAlert } = useAlert();
 
-  const [bookmarkedItems, setBookmarkedItems] = useState([]); // Lưu trữ { quizId, quizTitle, question }
+  const [bookmarkedItems, setBookmarkedItems] = useState([]);
   const [loadingBookmarks, setLoadingBookmarks] = useState(true);
   const [error, setError] = useState(null);
 
@@ -26,10 +26,8 @@ function BookmarkedQuestionsPage() {
     try {
       setLoadingBookmarks(true);
       setError(null);
-      const token = getToken();
-      const res = await axios.get('http://localhost:5001/api/users/bookmarks', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      // MỚI: Sử dụng api.get
+      const res = await api.get('/api/users/bookmarks');
       setBookmarkedItems(res.data);
     } catch (err) {
       console.error('Lỗi khi tải câu hỏi đã bookmark:', err);
@@ -41,7 +39,7 @@ function BookmarkedQuestionsPage() {
     } finally {
       setLoadingBookmarks(false);
     }
-  }, [isAuthenticated, getToken, logout, setAlert]);
+  }, [isAuthenticated, logout, setAlert]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -49,26 +47,20 @@ function BookmarkedQuestionsPage() {
     }
   }, [fetchBookmarkedQuestions, authLoading]);
 
-  // Hàm xử lý bật/tắt bookmark từ trang này (sau khi fetch lại)
   const handleToggleBookmark = async (questionId) => {
     if (!isAuthenticated) {
       setAlert('Vui lòng đăng nhập để đánh dấu sao câu hỏi.', 'warning');
       return;
     }
     try {
-      const token = getToken();
-      const res = await axios.put(`http://localhost:5001/api/users/bookmark/${questionId}`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      // MỚI: Sử dụng api.put
+      const res = await api.put(`/api/users/bookmark/${questionId}`, {});
 
-      // MỚI: Cập nhật trạng thái local thay vì fetch lại toàn bộ
       if (res.data.bookmarked) {
         setAlert('Đã thêm câu hỏi vào bookmark.', 'success');
-        // Nếu muốn hiển thị ngay thì có thể thêm vào đây
-        // setBookmarkedItems(prev => [...prev, { question: { _id: questionId, ... }, quizTitle: ..., quizId: ... }]);
       } else {
         setAlert('Đã xóa câu hỏi khỏi bookmark.', 'info');
-        // Lọc bỏ câu hỏi khỏi danh sách hiển thị ngay lập tức
+        // MỚI: Lọc bỏ câu hỏi khỏi danh sách hiển thị ngay lập tức
         setBookmarkedItems(prev => prev.filter(item => item.question._id !== questionId));
       }
     } catch (err) {

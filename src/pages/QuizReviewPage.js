@@ -1,15 +1,15 @@
 // src/pages/QuizReviewPage.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api'; // MỚI: Import api từ '../services/api'
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import BookmarkButton from '../components/BookmarkButton';
 
 function QuizReviewPage() {
-  const { id } = useParams(); // Quiz ID từ URL
-  const location = useLocation(); // Lấy state được truyền từ navigate (chứa userAnswers và shuffledOptionsOrder)
+  const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading, logout } = useAuth();
   const { setAlert } = useAlert();
@@ -20,7 +20,7 @@ function QuizReviewPage() {
   const [userAnswers, setUserAnswers] = useState({});
   const [shuffledOptionsOrder, setShuffledOptionsOrder] = useState({});
 
-  const [bookmarkedQuestions, setBookmarkedQuestions] = useState([]); // State để lưu danh sách các câu hỏi đã bookmark
+  const [bookmarkedQuestions, setBookmarkedQuestions] = useState([]);
 
 
   const getToken = useCallback(() => localStorage.getItem('token'), []);
@@ -28,10 +28,8 @@ function QuizReviewPage() {
   const fetchBookmarks = useCallback(async () => {
       if (!isAuthenticated) return;
       try {
-          const token = getToken();
-          const res = await axios.get('http://localhost:5001/api/users/bookmarks', {
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
+          // MỚI: Sử dụng api.get
+          const res = await api.get('/api/users/bookmarks');
           setBookmarkedQuestions(res.data.map(q => q.question._id));
       } catch (err) {
           console.error('Lỗi khi tải bookmarks:', err);
@@ -46,7 +44,6 @@ function QuizReviewPage() {
   }, [fetchBookmarks]);
 
 
-  // Fetch quiz data and user answers
   useEffect(() => {
     if (!id) {
       setAlert('Không tìm thấy ID bộ đề để xem lại.', 'error');
@@ -60,7 +57,6 @@ function QuizReviewPage() {
       setAlert('Không có dữ liệu câu trả lời để xem lại.', 'warning');
     }
 
-    // Lấy thứ tự đáp án đã trộn nếu có từ state
     if (location.state && location.state.shuffledOptionsOrder) {
         setShuffledOptionsOrder(location.state.shuffledOptionsOrder);
     }
@@ -69,13 +65,10 @@ function QuizReviewPage() {
       try {
         setLoadingQuiz(true);
         setError(null);
-        const token = getToken();
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-        const res = await axios.get(`http://localhost:5001/api/quizzes/${id}`, { headers });
+        // MỚI: Sử dụng api.get
+        const res = await api.get(`/api/quizzes/${id}`);
 
         let fetchedQuiz = res.data;
-        // Nếu có thứ tự đáp án đã trộn từ trước, áp dụng nó
         if (fetchedQuiz.questions && Object.keys(shuffledOptionsOrder).length > 0) {
             fetchedQuiz.questions = fetchedQuiz.questions.map(q => {
                 if (shuffledOptionsOrder[q._id]) {
@@ -90,7 +83,7 @@ function QuizReviewPage() {
         console.error('Lỗi khi tải bộ đề để xem lại:', err);
         if (err.response && err.response.status === 404) {
           setError('Bộ đề không tìm thấy hoặc bạn không có quyền truy cập.');
-          setAlert('Bộ đề không tìm subdocument hoặc bạn không có quyền truy cập.', 'error');
+          setAlert('Bộ đề không tìm thấy hoặc bạn không có quyền truy cập.', 'error');
         } else if (err.response && err.response.status === 403) {
           setError('Bạn không có quyền truy cập bộ đề này.');
           setAlert('Bạn không có quyền truy cập bộ đề này.', 'error');
@@ -106,17 +99,14 @@ function QuizReviewPage() {
     fetchQuiz();
   }, [id, navigate, setAlert, getToken, location.state, shuffledOptionsOrder]);
 
-  // MỚI: Hàm xử lý đánh dấu sao
   const handleToggleBookmark = async (questionId) => {
       if (!isAuthenticated) {
           setAlert('Vui lòng đăng nhập để đánh dấu sao câu hỏi.', 'warning');
           return;
       }
       try {
-          const token = getToken();
-          const res = await axios.put(`http://localhost:5001/api/users/bookmark/${questionId}`, {}, {
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
+          // MỚI: Sử dụng api.put
+          const res = await api.put(`/api/users/bookmark/${questionId}`, {});
 
           if (res.data.bookmarked) {
               setAlert('Đã thêm câu hỏi vào bookmark.', 'success');
@@ -242,7 +232,7 @@ function QuizReviewPage() {
                       <div key={option._id} className="mb-2">
                         <p className="text-sm font-medium">
                           <span className={option.isCorrect ? 'text-green-700' : 'text-gray-700'}>
-                            {optionLetter}. {option.isCorrect ? '(Đáp án đúng)' : ''} {/* MỚI: Thêm chỉ dẫn đáp án đúng */}
+                            {optionLetter}. {option.isCorrect ? '(Đáp án đúng)' : ''}
                           </span>
                           <span className="italic ml-2">{option.feedback || 'Không có giải thích.'}</span>
                         </p>

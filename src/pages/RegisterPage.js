@@ -1,7 +1,7 @@
 // src/pages/RegisterPage.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api'; // MỚI: Import api từ '../services/api'
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import { useAlert } from '../context/AlertContext';
@@ -34,27 +34,14 @@ function RegisterPage() {
           password
         };
 
-        const res = await axios.post('http://localhost:5001/api/auth/register', newUser);
+        const res = await api.post('/api/auth/register', newUser); // MỚI: Sử dụng api.post
 
         console.log('Đăng ký thành công:', res.data.token);
         setAlert('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
         navigate('/login');
       } catch (err) {
-        console.error('Lỗi đăng ký:', err); // Log toàn bộ đối tượng lỗi
-        // Kiểm tra nếu có phản hồi lỗi từ backend
-        if (err.response) {
-          // Lấy thông báo lỗi chung
-          const msg = err.response.data.msg;
-          if (msg) {
-            setAlert(msg, 'error');
-          }
-          // Nếu backend trả về mảng lỗi (ví dụ từ express-validator)
-          if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
-            err.response.data.errors.forEach(error => setAlert(error.msg, 'error'));
-          }
-        } else {
-          setAlert('Đăng ký thất bại! Lỗi không xác định.', 'error');
-        }
+        console.error('Lỗi đăng ký:', err.response && err.response.data.msg);
+        setAlert(err.response && err.response.data.msg ? err.response.data.msg : 'Đăng ký thất bại!', 'error');
       }
     }
   };

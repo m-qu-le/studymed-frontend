@@ -1,7 +1,7 @@
 // src/pages/LoginPage.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api'; // MỚI: Import api từ '../services/api'
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import { useAlert } from '../context/AlertContext';
@@ -30,25 +30,16 @@ function LoginPage() {
         password
       };
 
-      const res = await axios.post('http://localhost:5001/api/auth/login', userCredentials);
+      const res = await api.post('/api/auth/login', userCredentials); // MỚI: Sử dụng api.post
 
-      login(res.data.token);
+      localStorage.setItem('token', res.data.token);
       console.log('Đăng nhập thành công! Token:', res.data.token);
       setAlert('Đăng nhập thành công!', 'success');
+      login(res.data.token); // Gọi hàm login từ AuthContext để lưu token và cập nhật trạng thái
       navigate('/dashboard');
     } catch (err) {
-      console.error('Lỗi đăng nhập:', err); // Log toàn bộ đối tượng lỗi
-      if (err.response) {
-        const msg = err.response.data.msg;
-        if (msg) {
-          setAlert(msg, 'error');
-        }
-        if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
-          err.response.data.errors.forEach(error => setAlert(error.msg, 'error'));
-        }
-      } else {
-        setAlert('Đăng nhập thất bại! Lỗi không xác định.', 'error');
-      }
+      console.error('Lỗi đăng nhập:', err.response && err.response.data.msg);
+      setAlert(err.response && err.response.data.msg ? err.response.data.msg : 'Đăng nhập thất bại!', 'error');
     }
   };
 

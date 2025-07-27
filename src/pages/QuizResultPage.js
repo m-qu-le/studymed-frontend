@@ -5,7 +5,7 @@ import Button from '../components/Button';
 import { useAlert } from '../context/AlertContext';
 
 function QuizResultPage() {
-  const location = useLocation(); // Lấy state được truyền từ navigate
+  const location = useLocation();
   const navigate = useNavigate();
   const { setAlert } = useAlert();
 
@@ -17,17 +17,18 @@ function QuizResultPage() {
   const [quizTitle, setQuizTitle] = useState('');
   const [quizMode, setQuizMode] = useState('');
   const [quizId, setQuizId] = useState(null);
-  const [userAnswersData, setUserAnswersData] = useState({}); // Để lưu userAnswers cho việc xem lại
+  const [userAnswersData, setUserAnswersData] = useState({});
+  const [shuffledOptionsOrderData, setShuffledOptionsOrderData] = useState({}); // MỚI: Lưu thứ tự đáp án đã trộn
 
   useEffect(() => {
-    // Kiểm tra xem dữ liệu có được truyền qua state không
     if (location.state && location.state.quizData && location.state.userAnswers && location.state.quizMode) {
-      const { quizData, userAnswers, quizMode, timeTaken } = location.state;
+      const { quizData, userAnswers, quizMode, timeTaken, shuffledOptionsOrder } = location.state; // MỚI: Lấy shuffledOptionsOrder
       setQuizId(quizData._id);
       setQuizTitle(quizData.title);
       setQuizMode(quizMode);
       setTimeTaken(timeTaken);
-      setUserAnswersData(userAnswers); // Lưu userAnswers để xem lại
+      setUserAnswersData(userAnswers);
+      setShuffledOptionsOrderData(shuffledOptionsOrder || {}); // MỚI: Lưu thứ tự đã trộn
 
       let correct = 0;
       let incorrect = 0;
@@ -36,38 +37,31 @@ function QuizResultPage() {
       quizData.questions.forEach(q => {
         const userAnswerIds = userAnswers[q._id] || [];
 
-        // Lấy các đáp án đúng của câu hỏi này
         const correctOptionIds = q.options
                                 .filter(opt => opt.isCorrect)
                                 .map(opt => opt._id);
 
-        // Kiểm tra xem câu trả lời của người dùng có khớp với đáp án đúng không
-        // Đối với single-choice / true-false: chỉ cần 1 lựa chọn khớp
-        // Đối với multi-select: tất cả các lựa chọn đúng phải được chọn và không có lựa chọn sai nào được chọn thêm
         const isCorrectAnswer = (userAnswerIds.length === correctOptionIds.length) &&
                                 userAnswerIds.every(id => correctOptionIds.includes(id));
 
-        if (isCorrectAnswer && userAnswerIds.length > 0) { // Phải có trả lời và đúng
+        if (isCorrectAnswer && userAnswerIds.length > 0) {
           correct++;
-        } else if (userAnswerIds.length > 0) { // Có trả lời nhưng sai
+        } else if (userAnswerIds.length > 0) {
           incorrect++;
         }
-        // Nếu không trả lời thì không tính đúng sai, có thể thêm logic cho "bỏ qua"
       });
 
       setCorrectAnswersCount(correct);
       setIncorrectAnswersCount(incorrect);
       setTotalQuestions(total);
-      // Điểm có thể tính theo phần trăm
       setScore(total > 0 ? ((correct / total) * 100).toFixed(2) : 0);
 
     } else {
       setAlert('Không có dữ liệu kết quả bài làm. Vui lòng làm bài lại.', 'error');
-      navigate('/dashboard'); // Điều hướng về dashboard nếu không có dữ liệu
+      navigate('/dashboard');
     }
   }, [location.state, navigate, setAlert]);
 
-  // Chuyển đổi giây thành định dạng HH:MM:SS
   const formatTime = (seconds) => {
     if (typeof seconds !== 'number' || isNaN(seconds)) return 'N/A';
     const h = Math.floor(seconds / 3600);
@@ -80,7 +74,8 @@ function QuizResultPage() {
 
   const handleReviewMistakes = () => {
     if (quizId && userAnswersData) {
-      navigate(`/quiz/review/${quizId}`, { state: { userAnswers: userAnswersData, quizMode: quizMode } }); // Chuyển đến trang xem lại
+      // MỚI: Truyền shuffledOptionsOrderData
+      navigate(`/quiz/review/${quizId}`, { state: { userAnswers: userAnswersData, quizMode: quizMode, shuffledOptionsOrder: shuffledOptionsOrderData } }); 
     } else {
       setAlert('Không có dữ liệu để xem lại.', 'warning');
     }
@@ -117,7 +112,7 @@ function QuizResultPage() {
           <Button secondary onClick={() => navigate('/dashboard')}>
             Về Dashboard
           </Button>
-          <Button primary onClick={handleReviewMistakes} disabled={incorrectAnswersCount === 0 && correctAnswersCount === totalQuestions}>
+          <Button primary onClick={handleReviewMistakes} disabled={incorrectAnswersCount === 0 && correctAnswersCount === totalQuestions && totalQuestions > 0}> {/* Sửa điều kiện disable */}
             Xem lại đáp án
           </Button>
         </div>

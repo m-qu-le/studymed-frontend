@@ -1,7 +1,7 @@
 // src/pages/QuizTakingPage.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api'; // MỚI: Import api từ '../services/api'
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import Button from '../components/Button';
@@ -35,7 +35,7 @@ const formatRemainingTime = (seconds) => {
 function QuizTakingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading, logout } = useAuth(); // MỚI: Thêm logout
+  const { isAuthenticated, loading: authLoading, logout } = useAuth();
   const { setAlert } = useAlert();
   const [searchParams] = useSearchParams();
 
@@ -67,18 +67,16 @@ function QuizTakingPage() {
   const fetchBookmarks = useCallback(async () => {
       if (!isAuthenticated) return;
       try {
-          const token = getToken();
-          const res = await axios.get('http://localhost:5001/api/users/bookmarks', {
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
+          // MỚI: Sử dụng api.get
+          const res = await api.get('/api/users/bookmarks'); 
           setBookmarkedQuestions(res.data.map(q => q.question._id));
       } catch (err) {
           console.error('Lỗi khi tải bookmarks:', err);
-          if (err.response?.status === 401) { // MỚI: Logout nếu token hết hạn
+          if (err.response?.status === 401) {
               logout();
           }
       }
-  }, [isAuthenticated, getToken, logout]); // MỚI: Thêm logout vào dependency
+  }, [isAuthenticated, logout]);
 
   useEffect(() => {
       fetchBookmarks();
@@ -106,7 +104,6 @@ function QuizTakingPage() {
   }, [id, navigate, quiz, userAnswers, quizMode, setAlert, shuffledOptionsOrder]);
 
 
-  // Fetch quiz data
   useEffect(() => {
     if (!id) {
       setAlert('Không tìm thấy ID bộ đề.', 'error');
@@ -118,10 +115,8 @@ function QuizTakingPage() {
       try {
         setLoadingQuiz(true);
         setError(null);
-        const token = getToken();
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-        const res = await axios.get(`http://localhost:5001/api/quizzes/${id}`, { headers });
+        // MỚI: Sử dụng api.get
+        const res = await api.get(`/api/quizzes/${id}`); 
 
         let fetchedQuiz = res.data;
         let tempShuffledOptionsOrder = {};
@@ -187,7 +182,6 @@ function QuizTakingPage() {
     };
   }, [id, navigate, setAlert, getToken, shuffleQuestions]);
 
-  // Timer logic
   useEffect(() => {
     if (quizStarted && timeLeft !== null && !quizFinished) {
       timerRef.current = setInterval(() => {
@@ -221,11 +215,8 @@ function QuizTakingPage() {
           return;
       }
       try {
-          const token = getToken();
-          const res = await axios.put(`http://localhost:5001/api/users/bookmark/${questionId}`, {}, {
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
-
+          // MỚI: Sử dụng api.put
+          const res = await api.put(`/api/users/bookmark/${questionId}`, {});
           if (res.data.bookmarked) {
               setAlert('Đã thêm câu hỏi vào bookmark.', 'success');
               setBookmarkedQuestions(prev => [...prev, questionId]);
@@ -243,7 +234,6 @@ function QuizTakingPage() {
   };
 
 
-  // Xử lý khi người dùng chọn/bỏ chọn đáp án
   const handleAnswerChange = (questionId, optionId, questionType) => {
     setShowFeedback(false); 
     setUserAnswers((prevAnswers) => {
