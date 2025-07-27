@@ -1,28 +1,32 @@
+/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* MỚI: Áp dụng font Roboto và các kiểu cơ bản cho body */
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Roboto', sans-serif; /* Đảm bảo Roboto được sử dụng */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: hidden; /* Ngăn cuộn ngang */
 }
 
+/* MỚI: Điều chỉnh một số kiểu mặc định của form để phù hợp với Tailwind/Material You */
 input[type="radio"],
 input[type="checkbox"] {
+  /* Các kiểu dáng mặc định của trình duyệt */
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   border: 1px solid theme('colors.gray.400');
-  border-radius: theme('borderRadius.md');
+  border-radius: theme('borderRadius.md'); /* Hoặc full cho radio */
   outline: none;
   transition: all 0.15s ease-in-out;
 }
 
 input[type="radio"] {
-  border-radius: theme('borderRadius.full'); 
+  border-radius: theme('borderRadius.full'); /* Bo tròn hoàn toàn cho radio */
 }
 
 input[type="radio"]:checked,
@@ -33,5 +37,6 @@ input[type="checkbox"]:checked {
 
 input[type="radio"]:checked:focus,
 input[type="checkbox"]:checked:focus {
-  box-shadow: 0 0 0 3px rgba(theme('colors.primary-blue.500'), 0.5); /* Thêm đổ bóng khi focus */
+  /* ĐÃ SỬA: Gọi trực tiếp màu primary-blue, không có .500 */
+  box-shadow: 0 0 0 3px rgba(theme('colors.primary-blue'), 0.5); /* Thêm đổ bóng khi focus */
 }
