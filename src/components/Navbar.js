@@ -3,12 +3,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from './Button';
-import MobileMenu from './MobileMenu'; // Import MobileMenu
+import MobileMenu from './MobileMenu';
 
 function Navbar() {
   const { isAuthenticated, logout, user } = useAuth();
 
-  const handleLogout = () => { // Giữ lại hàm logout ở đây nếu cần gọi trực tiếp
+  const handleLogout = () => {
     logout();
   };
 
@@ -38,7 +38,8 @@ function Navbar() {
   );
 
   return (
-    <nav className="bg-blue-500 p-4 text-white shadow-lg rounded-b-xl mx-2 mt-2 relative z-10"> {/* Thêm relative z-10 */}
+    // MỚI: bg-transparent, backdrop-blur-lg, rounded-none, px-8
+    <nav className="fixed top-0 left-0 right-0 p-4 text-white z-50 backdrop-blur-lg bg-black bg-opacity-30"> 
       <div className="container mx-auto flex justify-between items-center">
         {/* Logo hoặc tên ứng dụng */}
         <Link to="/" className="text-2xl font-bold">
@@ -46,12 +47,12 @@ function Navbar() {
         </Link>
 
         {/* Các liên kết điều hướng cho màn hình lớn */}
-        <div className="hidden md:flex items-center"> {/* Ẩn trên mobile, hiển thị trên md */}
+        <div className="hidden md:flex items-center">
           {isAuthenticated ? authLinks : guestLinks}
         </div>
 
         {/* Menu cho màn hình nhỏ */}
-        <MobileMenu /> {/* Hiển thị MobileMenu */}
+        <MobileMenu />
       </div>
     </nav>
   );
