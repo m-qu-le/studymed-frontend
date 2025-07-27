@@ -1,10 +1,11 @@
 // src/pages/RegisterPage.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api'; // MỚI: Import api từ '../services/api'
+import api from '../services/api';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import { useAlert } from '../context/AlertContext';
+import StudyMedIcon from '../components/StudyMedIcon'; // MỚI: Import icon
 
 function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -34,7 +35,7 @@ function RegisterPage() {
           password
         };
 
-        const res = await api.post('/api/auth/register', newUser); // MỚI: Sử dụng api.post
+        const res = await api.post('/api/auth/register', newUser);
 
         console.log('Đăng ký thành công:', res.data.token);
         setAlert('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
@@ -47,54 +48,61 @@ function RegisterPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-      <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
-        <h1 className="text-3xl font-bold text-green-600 mb-6 text-center">Đăng Ký Tài Khoản Mới</h1>
+    <div className="flex items-center justify-center min-h-screen bg-soft-gray p-4"> {/* min-h-screen thay vì calc(100vh-80px) để nó bao trùm toàn bộ */}
+      <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center"> {/* Thêm text-center */}
+        {/* MỚI: Hình minh họa và tên ứng dụng */}
+        <div className="flex flex-col items-center mb-6">
+          <StudyMedIcon className="w-20 h-20 text-primary-blue mb-2" /> {/* Kích thước icon */}
+          <h1 className="text-4xl font-bold text-primary-blue">StudyMed</h1> {/* Tên ứng dụng */}
+        </div>
+
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Tạo Tài Khoản Mới</h2> {/* Thay đổi tiêu đề chính */}
+
         <form onSubmit={onSubmit}>
           <InputField
-            label="Tên đăng nhập"
+            // label="Tên đăng nhập" // ĐÃ BỎ LABEL
             type="text"
             name="username"
             value={username}
             onChange={onChange}
-            placeholder="Nhập tên đăng nhập của bạn"
+            placeholder="Tên đăng nhập" // MỚI: Placeholder làm label
             required
           />
           <InputField
-            label="Email"
+            // label="Email" // ĐÃ BỎ LABEL
             type="email"
             name="email"
             value={email}
             onChange={onChange}
-            placeholder="Nhập email của bạn"
+            placeholder="Email" // MỚI: Placeholder làm label
             required
           />
           <InputField
-            label="Mật khẩu"
+            // label="Mật khẩu" // ĐÃ BỎ LABEL
             type="password"
             name="password"
             value={password}
             onChange={onChange}
-            placeholder="Nhập mật khẩu"
+            placeholder="Mật khẩu" // MỚI: Placeholder làm label
             required
             minLength="6"
           />
           <InputField
-            label="Xác nhận mật khẩu"
+            // label="Xác nhận mật khẩu" // ĐÃ BỎ LABEL
             type="password"
             name="password2"
             value={password2}
             onChange={onChange}
-            placeholder="Nhập lại mật khẩu"
+            placeholder="Xác nhận mật khẩu" // MỚI: Placeholder làm label
             required
           />
-          <Button primary type="submit" className="w-full mt-4">
+          <Button primary type="submit" className="w-full mt-6 py-3 text-lg"> {/* Điều chỉnh kích thước nút */}
             Đăng Ký
           </Button>
         </form>
-        <p className="mt-4 text-center text-gray-600">
+        <p className="mt-6 text-center text-gray-600 text-sm"> {/* Điều chỉnh font size */}
           Bạn đã có tài khoản?{' '}
-          <a href="/login" className="text-blue-600 hover:underline">
+          <a href="/login" className="text-primary-blue hover:underline font-medium"> {/* Điều chỉnh màu và font-weight */}
             Đăng nhập ngay
           </a>
         </p>

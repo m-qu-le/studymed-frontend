@@ -1,11 +1,12 @@
 // src/pages/LoginPage.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api'; // MỚI: Import api từ '../services/api'
+import api from '../services/api';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import { useAlert } from '../context/AlertContext';
 import { useAuth } from '../context/AuthContext';
+import StudyMedIcon from '../components/StudyMedIcon'; // MỚI: Import icon
 
 function LoginPage() {
   const [formData, setFormData] = useState({
@@ -30,12 +31,12 @@ function LoginPage() {
         password
       };
 
-      const res = await api.post('/api/auth/login', userCredentials); // MỚI: Sử dụng api.post
+      const res = await api.post('/api/auth/login', userCredentials);
 
       localStorage.setItem('token', res.data.token);
       console.log('Đăng nhập thành công! Token:', res.data.token);
       setAlert('Đăng nhập thành công!', 'success');
-      login(res.data.token); // Gọi hàm login từ AuthContext để lưu token và cập nhật trạng thái
+      login(res.data.token);
       navigate('/dashboard');
     } catch (err) {
       console.error('Lỗi đăng nhập:', err.response && err.response.data.msg);
@@ -44,38 +45,49 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-      <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
-        <h1 className="text-3xl font-bold text-purple-600 mb-6 text-center">Đăng Nhập</h1>
+    <div className="flex items-center justify-center min-h-screen bg-soft-gray p-4"> {/* min-h-screen thay vì calc(100vh-80px) */}
+      <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center"> {/* Thêm text-center */}
+        {/* MỚI: Hình minh họa và tên ứng dụng */}
+        <div className="flex flex-col items-center mb-6">
+          <StudyMedIcon className="w-20 h-20 text-primary-blue mb-2" /> {/* Kích thước icon */}
+          <h1 className="text-4xl font-bold text-primary-blue">StudyMed</h1> {/* Tên ứng dụng */}
+        </div>
+
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Đăng Nhập Tài Khoản</h2> {/* Thay đổi tiêu đề chính */}
+
         <form onSubmit={onSubmit}>
           <InputField
-            label="Email"
+            // label="Email" // ĐÃ BỎ LABEL
             type="email"
             name="email"
             value={email}
             onChange={onChange}
-            placeholder="Nhập email của bạn"
+            placeholder="Email" // MỚI: Placeholder làm label
             required
           />
           <InputField
-            label="Mật khẩu"
+            // label="Mật khẩu" // ĐÃ BỎ LABEL
             type="password"
             name="password"
             value={password}
             onChange={onChange}
-            placeholder="Nhập mật khẩu"
+            placeholder="Mật khẩu" // MỚI: Placeholder làm label
             required
           />
-          <Button primary type="submit" className="w-full mt-4">
+          <Button primary type="submit" className="w-full mt-6 py-3 text-lg"> {/* Điều chỉnh kích thước nút */}
             Đăng Nhập
           </Button>
         </form>
-        <p className="mt-4 text-center text-gray-600">
+        <p className="mt-6 text-center text-gray-600 text-sm"> {/* Điều chỉnh font size */}
           Bạn chưa có tài khoản?{' '}
-          <a href="/register" className="text-blue-600 hover:underline">
+          <a href="/register" className="text-primary-blue hover:underline font-medium"> {/* Điều chỉnh màu và font-weight */}
             Đăng ký ngay
           </a>
         </p>
+        {/* Có thể thêm link Quên mật khẩu sau này */}
+        {/* <p className="mt-2 text-center text-gray-600 text-sm">
+            Quên mật khẩu? <a href="/forgot-password" className="text-primary-blue hover:underline font-medium">Nhấp vào đây</a>
+        </p> */}
       </div>
     </div>
   );
