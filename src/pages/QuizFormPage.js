@@ -253,17 +253,14 @@ function QuizFormPage() {
               </div>
             </div>
             <div className="mb-4">
-              <label htmlFor="description" className="block text-gray-700 text-sm font-bold mb-2">Mô tả</label>
-              <textarea
-                id="description"
-                name="description"
-                value={quiz.description}
-                onChange={handleQuizChange}
-                rows="3"
-                className="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent transition duration-200 ease-in-out"
-                placeholder="Mô tả ngắn gọn về bộ đề này..."
-              ></textarea>
-            </div>
+  <label className="block text-gray-700 text-sm font-bold mb-2">Độ khó</label>
+  <select name="difficulty" value={question.difficulty || 'Thông hiểu'} onChange={(e) => handleQuestionChange(qIndex, e)} className="shadow w-full p-2 border rounded bg-white">
+    <option value="Nhận biết">Nhận biết</option>
+    <option value="Thông hiểu">Thông hiểu</option>
+    <option value="Vận dụng">Vận dụng</option>
+    <option value="Vận dụng cao">Vận dụng cao</option>
+  </select>
+</div>
           </div>
 
           <div className="mb-8 p-6 border border-gray-200 rounded-lg shadow-sm">
