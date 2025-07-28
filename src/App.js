@@ -22,17 +22,18 @@ import { AuthProvider } from './context/AuthContext';
 const AppContent = () => {
   const location = useLocation();
   const isQuizTakingPage = location.pathname.startsWith('/quiz/take/');
+  const isHomePage = location.pathname === '/';
   
-  // MỚI: Chỉ áp dụng padding nếu không phải trang làm bài VÀ không phải trang chủ
-  const shouldApplyPadding = !isQuizTakingPage && location.pathname !== '/';
+  // Chỉ áp dụng padding nếu Navbar hiển thị
+  const shouldApplyPadding = !isQuizTakingPage && !isHomePage;
 
   return (
     <>
-      {!isQuizTakingPage && <Navbar />}
+      {/* MỚI: Thêm điều kiện !isHomePage để ẩn Navbar cả ở trang chủ */}
+      {!isQuizTakingPage && !isHomePage && <Navbar />}
       
       <AlertMessage />
 
-      {/* MỚI: Áp dụng padding có điều kiện */}
       <div className={shouldApplyPadding ? "pt-16" : ""}>
         <Routes>
           <Route path="/" element={<HomePage />} />
