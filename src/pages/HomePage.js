@@ -2,10 +2,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import HomeBackground from '../assets/home-background-2.jpg'; // Import ảnh nền mới
+import HomeBackground from '../assets/home-background.jpg'; // Hãy đảm bảo bạn đã đổi tên ảnh nền mới thành home-background.jpg hoặc cập nhật đường dẫn ở đây
 
 function HomePage() {
-  const { isAuthenticated } = useAuth(); // Dùng context để kiểm tra trạng thái đăng nhập
+  const { isAuthenticated } = useAuth();
 
   return (
     <div 
@@ -14,20 +14,16 @@ function HomePage() {
     >
       {/* Header riêng cho trang chủ */}
       <header className="absolute top-0 left-0 right-0 p-8 flex justify-between items-center">
-        {/* Logo */}
         <div className="text-xl font-bold tracking-wider">
           STUDYMED
         </div>
         
-        {/* Các link điều hướng */}
         <nav className="flex space-x-6 text-sm">
           {isAuthenticated ? (
-            // Nếu đã đăng nhập
             <Link to="/dashboard" className="hover:text-gray-300 transition-colors duration-200">
               Dashboard
             </Link>
           ) : (
-            // Nếu chưa đăng nhập
             <>
               <Link to="/register" className="hover:text-gray-300 transition-colors duration-200">
                 Đăng ký
@@ -41,7 +37,8 @@ function HomePage() {
       </header>
 
       {/* Nội dung chính của trang chủ */}
-      <main className="absolute bottom-0 left-0 p-8 md:p-16 max-w-lg">
+      {/* MỚI: Thay đổi class để responsive vị trí */}
+      <main className="absolute bottom-24 left-8 right-8 md:bottom-20 md:left-20 md:right-auto max-w-lg">
         <h1 className="text-5xl md:text-6xl font-bold mb-4 lowercase">
           welcome
         </h1>
