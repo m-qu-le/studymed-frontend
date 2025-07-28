@@ -6,7 +6,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { FiMenu, FiX } from 'react-icons/fi'; // Import icon cho nút menu
+import { FiMenu } from 'react-icons/fi';
 
 function DashboardPage() {
   const [quizzes, setQuizzes] = useState([]);
@@ -15,8 +15,6 @@ function DashboardPage() {
   const { isAuthenticated, logout, loading: authLoading, user } = useAuth();
   const { setAlert } = useAlert();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-
-  // MỚI: State để quản lý việc đóng/mở sidebar trên mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const currentDate = new Date().toLocaleDateString('vi-VN', {
@@ -76,9 +74,7 @@ function DashboardPage() {
   }
 
   return (
-    // MỚI: Thay h-screen bằng h-dvh và thêm overflow-hidden để sửa lỗi "trang dài"
     <div className="relative flex h-dvh bg-gray-100 font-sans overflow-hidden">
-      {/* Lớp phủ cho sidebar mobile */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
@@ -87,12 +83,12 @@ function DashboardPage() {
       )}
 
       {/* Sidebar */}
-      {/* MỚI: Thêm các lớp CSS để xử lý responsive */}
+      {/* ĐÃ SỬA: Bỏ `lg:fixed` để sidebar luôn `fixed`, giúp transform hoạt động đúng */}
       <aside 
         className={`fixed top-0 left-0 h-full w-64 bg-white flex flex-col border-r z-30
                     transform transition-transform duration-300 ease-in-out
                     ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-                    lg:translate-x-0 lg:fixed`}
+                    lg:translate-x-0`}
       >
         <div className="h-16 flex items-center justify-center border-b">
           <h1 className="text-xl font-bold tracking-wider text-primary-blue">STUDYMED</h1>
@@ -121,17 +117,14 @@ function DashboardPage() {
       </aside>
 
       {/* Main Content */}
-      {/* MỚI: Thêm lg:ml-64 để tạo khoảng trống cho sidebar trên desktop */}
       <div className="flex-1 flex flex-col lg:ml-64">
         <header className="h-16 bg-white border-b flex items-center justify-between p-4">
-          {/* MỚI: Nút Hamburger chỉ hiển thị trên mobile */}
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
             className="text-gray-700 text-2xl lg:hidden"
           >
             <FiMenu />
           </button>
-          {/* MỚI: Sửa lại lời chào */}
           <span className="text-gray-700 ml-auto">Chào bạn!</span>
         </header>
 
@@ -152,7 +145,8 @@ function DashboardPage() {
                   <div className="text-xs text-gray-500 mb-4">
                     <span>Môn: {quiz.subject}</span>
                   </div>
-                  <div className="flex justify-end gap-2 mt-auto">
+                  {/* ĐÃ SỬA: Thêm `flex-wrap` để các nút tự xuống dòng */}
+                  <div className="flex justify-end gap-2 mt-auto flex-wrap">
                     <Button secondary onClick={() => navigate(`/quiz/edit/${quiz._id}`)} className="text-xs py-1 px-3">
                       Quản lý
                     </Button>
