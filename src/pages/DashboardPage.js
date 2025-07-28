@@ -5,7 +5,8 @@ import api from '../services/api';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
-import ConfirmationModal from '../components/ConfirmationModal'; // Import modal mới
+import ConfirmationModal from '../components/ConfirmationModal';
+import { FiMenu, FiX } from 'react-icons/fi'; // Import icon cho nút menu
 
 function DashboardPage() {
   const [quizzes, setQuizzes] = useState([]);
@@ -13,11 +14,11 @@ function DashboardPage() {
   const navigate = useNavigate();
   const { isAuthenticated, logout, loading: authLoading, user } = useAuth();
   const { setAlert } = useAlert();
-
-  // State cho modal xác nhận đăng xuất
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  // Lấy ngày tháng năm hiện tại theo định dạng tiếng Việt
+  // MỚI: State để quản lý việc đóng/mở sidebar trên mobile
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   const currentDate = new Date().toLocaleDateString('vi-VN', {
     weekday: 'long',
     year: 'numeric',
@@ -26,7 +27,6 @@ function DashboardPage() {
   });
 
   const fetchQuizzes = useCallback(async () => {
-    // ... (logic fetchQuizzes giữ nguyên như cũ)
     try {
       setLoadingQuizzes(true);
       const response = await api.get('/api/quizzes');
@@ -49,13 +49,12 @@ function DashboardPage() {
   }, [fetchQuizzes, isAuthenticated, authLoading, navigate]);
 
   const handleLogout = () => {
-    setIsLogoutModalOpen(false); // Đóng modal trước
+    setIsLogoutModalOpen(false);
     logout();
     setAlert('Bạn đã đăng xuất thành công!', 'success');
   };
 
   const handleDeleteQuiz = async (quizId) => {
-    // ... (logic handleDeleteQuiz giữ nguyên như cũ)
     if (window.confirm('Bạn có chắc chắn muốn xóa bộ đề này không?')) {
       try {
         await api.delete(`/api/quizzes/${quizId}`);
@@ -77,9 +76,24 @@ function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
+    // MỚI: Thay h-screen bằng h-dvh và thêm overflow-hidden để sửa lỗi "trang dài"
+    <div className="relative flex h-dvh bg-gray-100 font-sans overflow-hidden">
+      {/* Lớp phủ cho sidebar mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white flex flex-col border-r">
+      {/* MỚI: Thêm các lớp CSS để xử lý responsive */}
+      <aside 
+        className={`fixed top-0 left-0 h-full w-64 bg-white flex flex-col border-r z-30
+                    transform transition-transform duration-300 ease-in-out
+                    ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                    lg:translate-x-0 lg:fixed`}
+      >
         <div className="h-16 flex items-center justify-center border-b">
           <h1 className="text-xl font-bold tracking-wider text-primary-blue">STUDYMED</h1>
         </div>
@@ -107,22 +121,30 @@ function DashboardPage() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="h-16 bg-white border-b flex items-center justify-end p-4">
-          <span className="text-gray-700">Chào, {user ? user.username : 'Bạn'}!</span>
+      {/* MỚI: Thêm lg:ml-64 để tạo khoảng trống cho sidebar trên desktop */}
+      <div className="flex-1 flex flex-col lg:ml-64">
+        <header className="h-16 bg-white border-b flex items-center justify-between p-4">
+          {/* MỚI: Nút Hamburger chỉ hiển thị trên mobile */}
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+            className="text-gray-700 text-2xl lg:hidden"
+          >
+            <FiMenu />
+          </button>
+          {/* MỚI: Sửa lại lời chào */}
+          <span className="text-gray-700 ml-auto">Chào bạn!</span>
         </header>
 
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-            <p className="text-gray-500">{currentDate}</p>
+            <p className="text-gray-500 capitalize">{currentDate}</p>
           </div>
 
-          {/* Phần hiển thị các bộ đề */}
           {quizzes.length === 0 ? (
             <p className="text-center text-gray-600 text-lg">Bạn chưa có bộ đề nào. Hãy tạo một cái mới!</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {quizzes.map((quiz) => (
                 <div key={quiz._id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 flex flex-col">
                   <h2 className="text-xl font-semibold text-blue-700 mb-2 truncate">{quiz.title}</h2>
@@ -148,7 +170,6 @@ function DashboardPage() {
         </main>
       </div>
 
-      {/* Modal xác nhận đăng xuất */}
       <ConfirmationModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
