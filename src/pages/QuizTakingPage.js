@@ -71,7 +71,6 @@ function QuizTakingPage() {
     const startTime = localStorage.getItem('quizStartTime');
     const timeTaken = startTime ? Math.floor((Date.now() - parseInt(startTime, 10)) / 1000) : 0;
     
-    // ĐÃ SỬA: Gửi đầy đủ state sang trang kết quả
     navigate(`/quiz/result/${id}`, {
       state: {
         quizData: quiz,
@@ -84,42 +83,42 @@ function QuizTakingPage() {
     localStorage.removeItem('quizStartTime');
   }, [id, navigate, quiz, userAnswers, quizMode, shuffledOptionsOrder]);
 
-  useEffect(() => {
-    const fetchQuizAndSetup = async () => {
-      try {
-        setLoadingQuiz(true);
-        const res = await api.get(`/api/quizzes/${id}`);
-        let fetchedQuiz = res.data;
-        let tempShuffledOptionsOrder = {};
-  
-        if (fetchedQuiz.questions) {
-          // MỚI: Trộn thứ tự các đáp án (options)
-          fetchedQuiz.questions.forEach(q => {
-            if (q.questionType !== 'true-false') {
-              const shuffledOpts = shuffleArray([...q.options]);
-              tempShuffledOptionsOrder[q._id] = shuffledOpts.map(opt => opt._id);
-              q.options = shuffledOpts;
-            }
-          });
-  
-          // MỚI: Trộn thứ tự câu hỏi nếu có yêu cầu
-          if (shuffleQuestions) {
-            fetchedQuiz.questions = shuffleArray([...fetchedQuiz.questions]);
+  // ĐÃ SỬA: Xóa `setAlert` khỏi dependency array của useCallback để phá vỡ vòng lặp
+  const fetchQuizAndSetup = useCallback(async () => {
+    try {
+      setLoadingQuiz(true);
+      const res = await api.get(`/api/quizzes/${id}`);
+      let fetchedQuiz = res.data;
+      let tempShuffledOptionsOrder = {};
+
+      if (fetchedQuiz.questions) {
+        fetchedQuiz.questions.forEach(q => {
+          if (q.questionType !== 'true-false') {
+            const shuffledOpts = shuffleArray([...q.options]);
+            tempShuffledOptionsOrder[q._id] = shuffledOpts.map(opt => opt._id);
+            q.options = shuffledOpts;
           }
+        });
+
+        if (shuffleQuestions) {
+          fetchedQuiz.questions = shuffleArray([...fetchedQuiz.questions]);
         }
-  
-        setQuiz(fetchedQuiz);
-        setShuffledOptionsOrder(tempShuffledOptionsOrder);
-        localStorage.setItem('quizStartTime', Date.now().toString());
-      } catch (err) {
-        setAlert('Không thể tải bộ đề.', 'error');
-        navigate('/dashboard');
-      } finally {
-        setLoadingQuiz(false);
       }
-    };
+
+      setQuiz(fetchedQuiz);
+      setShuffledOptionsOrder(tempShuffledOptionsOrder);
+      localStorage.setItem('quizStartTime', Date.now().toString());
+    } catch (err) {
+      setAlert('Không thể tải bộ đề.', 'error');
+      navigate('/dashboard');
+    } finally {
+      setLoadingQuiz(false);
+    }
+  }, [id, navigate, shuffleQuestions]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     fetchQuizAndSetup();
-  }, [id, navigate, setAlert, shuffleQuestions]);
+  }, [fetchQuizAndSetup]);
   
   useEffect(() => {
     if (timeLeft === null || isTimerPaused || loadingQuiz) {
@@ -127,7 +126,7 @@ function QuizTakingPage() {
       return;
     }
   
-    if (timeLeft <= 0) {
+    if (timeLeft <= 0 && !isTimeUp) {
       setIsTimeUp(true);
       setAlert('Đã hết giờ làm bài!', 'warning');
       if(timerRef.current) clearInterval(timerRef.current);
@@ -139,9 +138,8 @@ function QuizTakingPage() {
     }, 1000);
   
     return () => clearInterval(timerRef.current);
-  }, [timeLeft, isTimerPaused, loadingQuiz, setAlert]);
+  }, [timeLeft, isTimerPaused, loadingQuiz, isTimeUp, setAlert]);
 
-  // MỚI: State và hàm xử lý cho chế độ ôn tập
   const [showFeedback, setShowFeedback] = useState(false);
 
   const handleToggleBookmark = async (questionId) => {
@@ -175,6 +173,10 @@ function QuizTakingPage() {
       }
       return { ...prevAnswers, [questionId]: newAnswers };
     });
+
+    if (quizMode === 'review' && questionType !== 'multi-select') {
+      setShowFeedback(true);
+    }
   };
 
   const handleNextQuestion = () => {
@@ -187,7 +189,7 @@ function QuizTakingPage() {
   const handlePreviousQuestion = () => {
     setShowFeedback(false);
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prevIndex => prevIndex - 1);
+      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
     }
   };
   
@@ -269,7 +271,6 @@ function QuizTakingPage() {
             })}
           </div>
           
-          {/* MỚI: Hiển thị giải thích trong chế độ ôn tập */}
           {quizMode === 'review' && showFeedback && (
             <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-md">
               <h4 className="font-bold mb-2">Giải thích chi tiết:</h4>
@@ -295,7 +296,6 @@ function QuizTakingPage() {
               Câu trước
             </Button>
             
-            {/* MỚI: Logic hiển thị nút "Xong" cho câu hỏi multi-select */}
             {quizMode === 'review' && currentQuestion.questionType === 'multi-select' && !showFeedback && (userAnswers[currentQuestion._id]?.length > 0) ? (
               <Button primary onClick={() => setShowFeedback(true)}>
                 Xong
