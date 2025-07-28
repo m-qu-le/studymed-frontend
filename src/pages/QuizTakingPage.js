@@ -43,6 +43,7 @@ function QuizTakingPage() {
   const [loadingQuiz, setLoadingQuiz] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
+  const [shuffledOptionsOrder, setShuffledOptionsOrder] = useState({});
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState([]);
   
   const [timeLeft, setTimeLeft] = useState(timeLimit);
