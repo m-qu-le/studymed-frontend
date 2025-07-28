@@ -272,7 +272,7 @@ function QuizTakingPage() {
 
   if (authLoading || loadingQuiz) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
+      <div className="flex items-center justify-center min-h-screen bg-soft-gray p-4">
         <p className="text-xl text-gray-700">Đang tải bộ đề...</p>
       </div>
     );
@@ -280,7 +280,7 @@ function QuizTakingPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-soft-gray p-4">
         <p className="text-xl text-red-600 mb-4">{error}</p>
         <Button primary onClick={() => navigate('/dashboard')}>Quay lại Dashboard</Button>
       </div>
@@ -289,7 +289,7 @@ function QuizTakingPage() {
 
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-soft-gray p-4">
         <p className="text-xl text-gray-700">Bộ đề này không có câu hỏi nào hoặc không tìm thấy bộ đề.</p>
         <Button primary className="mt-4" onClick={() => navigate('/dashboard')}>Quay lại Dashboard</Button>
       </div>
@@ -297,7 +297,7 @@ function QuizTakingPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-soft-gray p-4 flex flex-col items-center">
+    <div className="min-h-screen bg-soft-gray p-4 flex flex-col items-center">
       <div className="container mx-auto p-8 bg-white rounded-xl shadow-lg max-w-4xl">
         <h1 className="text-3xl font-bold text-primary-blue mb-4 text-center">{quiz.title}</h1>
         <p className="text-gray-700 text-lg mb-6 text-center">{quiz.description}</p>
@@ -394,36 +394,39 @@ function QuizTakingPage() {
           )}
         </div>
 
-        {/* Nút điều hướng */}
-        <div className="flex justify-between items-center mt-6">
+        {/* MỚI: Cụm nút điều hướng được làm lại cho responsive */}
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center mt-8 gap-3 w-full">
+          {/* Nút thoát sẽ ở dưới cùng trên màn hình nhỏ và bên trái trên màn hình lớn */}
           <Button
             secondary
             onClick={() => navigate('/dashboard')}
-            className="py-2 px-4"
+            className="w-full sm:w-auto" // Đảm bảo nút chiếm toàn bộ chiều rộng trên màn hình nhỏ
             disabled={quizFinished}
           >
             Thoát
           </Button>
 
-          <div className="flex space-x-3">
+          {/* Cụm nút "Câu trước" và "Câu tiếp theo / Nộp bài" */}
+          <div className="flex w-full sm:w-auto gap-3">
             <Button
               secondary
               onClick={handlePreviousQuestion}
               disabled={currentQuestionIndex === 0 || quizFinished}
+              className="flex-1" // flex-1 để chiếm không gian bằng nhau
             >
               Câu trước
             </Button>
 
             {currentQuestion.questionType === 'multi-select' && quizMode === 'review' && userAnswers[currentQuestion._id] && !showFeedback ? (
-                <Button primary onClick={() => setShowFeedback(true)} disabled={quizFinished}>
+                <Button primary onClick={() => setShowFeedback(true)} disabled={quizFinished} className="flex-1">
                     Xong
                 </Button>
             ) : currentQuestionIndex < quiz.questions.length - 1 ? (
-                <Button primary onClick={handleNextQuestion} disabled={quizFinished}>
+                <Button primary onClick={handleNextQuestion} disabled={quizFinished} className="flex-1">
                   Câu tiếp theo
                 </Button>
             ) : (
-                <Button primary onClick={handleFinishQuiz} disabled={quizFinished}>
+                <Button primary onClick={handleFinishQuiz} disabled={quizFinished} className="flex-1">
                   Nộp bài
                 </Button>
             )}
