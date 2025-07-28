@@ -2,13 +2,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import HomeBackground from '../assets/home-background.jpg'; // Hãy đảm bảo file ảnh nền của bạn vẫn nằm ở đây
+import HomeBackground from '../assets/home-background.jpg'; 
 
 function HomePage() {
   const { isAuthenticated } = useAuth();
 
   return (
-    // MỚI: Thay "min-h-screen" thành "h-screen" và thêm "overflow-hidden"
     <div 
       className="relative w-full h-screen bg-cover bg-center text-white font-sans overflow-hidden" 
       style={{ backgroundImage: `url(${HomeBackground})` }}
@@ -38,7 +37,8 @@ function HomePage() {
       </header>
 
       {/* Nội dung chính của trang chủ */}
-      <main className="absolute bottom-24 left-8 right-8 md:bottom-20 md:left-20 md:right-auto max-w-lg">
+      {/* MỚI: Tăng giá trị "bottom" để đẩy khối chữ lên cao hơn */}
+      <main className="absolute bottom-32 left-8 right-8 md:bottom-32 md:left-32 md:right-auto max-w-lg">
         <h1 className="text-5xl md:text-6xl font-bold mb-4 lowercase">
           welcome
         </h1>
