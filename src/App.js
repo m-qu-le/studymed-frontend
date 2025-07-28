@@ -21,16 +21,19 @@ import { AuthProvider } from './context/AuthContext';
 
 const AppContent = () => {
   const location = useLocation();
-  const isQuizTakingPage = location.pathname.startsWith('/quiz/take/');
-  const isHomePage = location.pathname === '/';
-  
-  // Chỉ áp dụng padding nếu Navbar hiển thị
-  const shouldApplyPadding = !isQuizTakingPage && !isHomePage;
+  const path = location.pathname;
+
+  // MỚI: Xác định các trang không cần Navbar hoặc padding
+  const isHomePage = path === '/';
+  const isAuthPage = path === '/login' || path === '/register';
+  const isQuizTakingPage = path.startsWith('/quiz/take/');
+
+  const showNavbar = !isHomePage && !isAuthPage && !isQuizTakingPage;
+  const shouldApplyPadding = !isHomePage && !isAuthPage && !isQuizTakingPage;
 
   return (
     <>
-      {/* MỚI: Thêm điều kiện !isHomePage để ẩn Navbar cả ở trang chủ */}
-      {!isQuizTakingPage && !isHomePage && <Navbar />}
+      {showNavbar && <Navbar />}
       
       <AlertMessage />
 
