@@ -6,7 +6,8 @@ import Button from '../components/Button';
 import InputField from '../components/InputField';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
-import { TagInput } from '@szhsin/react-tag-input';
+// MỚI: Import component CustomTagInput của chúng ta
+import CustomTagInput from '../components/CustomTagInput';
 
 function QuizFormPage() {
   const { id } = useParams();
@@ -153,7 +154,6 @@ function QuizFormPage() {
         </h1>
 
         <form onSubmit={handleSubmit}>
-          {/* Quiz Details Form */}
           <div className="mb-8 p-6 border border-gray-200 rounded-lg shadow-sm">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Thông tin Bộ đề</h2>
             <InputField label="Tiêu đề Bộ đề" name="title" value={quiz.title} onChange={handleQuizChange} required />
@@ -168,7 +168,6 @@ function QuizFormPage() {
             )}
           </div>
 
-          {/* Questions Section */}
           <div className="mb-8 p-6 border border-gray-200 rounded-lg shadow-sm">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Các câu hỏi</h2>
             {quiz.questions.map((question, qIndex) => (
@@ -177,11 +176,17 @@ function QuizFormPage() {
                   <h3 className="text-xl font-semibold">Câu hỏi {qIndex + 1}</h3>
                   <Button type="button" onClick={() => handleDeleteQuestion(qIndex)} className="bg-red-500 hover:bg-red-600 py-1 px-3">Xóa Câu Hỏi</Button>
                 </div>
+                
                 <textarea name="questionText" value={question.questionText} onChange={(e) => handleQuestionChange(qIndex, e)} className="shadow w-full p-2 border rounded" placeholder="Nội dung câu hỏi" required />
                 
+                {/* MỚI: Sử dụng component CustomTagInput */}
                 <div className="mb-4 mt-4">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">Tags (nhấn Enter để thêm)</label>
-                  <TagInput value={question.tags || []} onChange={(newTags) => handleTagsChange(qIndex, newTags)} placeholder="Nhập tag..." className="w-full border rounded-lg p-2 bg-white" />
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Tags (nhấn Enter để thêm)</label>
+                    <CustomTagInput
+                        tags={question.tags || []}
+                        setTags={(newTags) => handleTagsChange(qIndex, newTags)}
+                        placeholder="Nhập tag và nhấn Enter"
+                    />
                 </div>
 
                 <div className="mb-4">
