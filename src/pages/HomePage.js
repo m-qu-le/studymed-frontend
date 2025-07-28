@@ -3,17 +3,17 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 import StudyMedIcon from '../components/StudyMedIcon';
+// MỚI: Import ảnh nền từ thư mục assets
+import HomeBackground from '../assets/home-background.jpg';
 
 function HomePage() {
   const navigate = useNavigate();
 
-  // MỚI: Thay đổi ảnh nền theo yêu cầu của bạn
-  const backgroundImageUrl = "https://i.pinimg.com/originals/0c/33/c9/0c33c94bf6f3458913615a65c1945789.jpg";
-
   return (
     <div 
       className="relative flex flex-col items-center justify-center min-h-screen bg-cover bg-center text-white p-4 overflow-hidden" 
-      style={{ backgroundImage: `url('${backgroundImageUrl}')` }}
+      // MỚI: Sử dụng biến đã import để làm ảnh nền
+      style={{ backgroundImage: `url(${HomeBackground})` }}
     >
       <div className="absolute inset-0 bg-black opacity-50 z-0"></div> 
 
@@ -35,7 +35,6 @@ function HomePage() {
           >
             Đăng Ký Ngay
           </Button>
-          {/* MỚI: Thay đổi style của nút Đăng Nhập */}
           <Button 
             secondary 
             onClick={() => navigate('/login')} 
