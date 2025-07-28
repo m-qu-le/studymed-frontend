@@ -1,17 +1,16 @@
 // src/pages/LoginPage.js
-import React, { useState } from 'react';
+import React, { useState } from 'react'; // ĐÃ SỬA: Thêm dấu ; ở cuối dòng
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import { useAlert } from '../context/AlertContext';
 import { useAuth } from '../context/AuthContext';
-import AuthBackground from '../assets/auth-background.jpg'; // Import ảnh nền
+import AuthBackground from '../assets/auth-background.jpg';
 
 function LoginPage() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const { email, password } = formData;
-
   const navigate = useNavigate();
   const { setAlert } = useAlert();
   const { login } = useAuth();
@@ -36,41 +35,27 @@ function LoginPage() {
       className="fixed top-0 left-0 w-full h-dvh bg-cover bg-center font-sans" 
       style={{ backgroundImage: `url(${AuthBackground})` }}
     >
-      {/* Logo góc trên trái */}
       <Link to="/" className="absolute top-0 left-0 p-8 text-xl font-bold text-white tracking-wider">
         STUDYMED
       </Link>
 
-      {/* Khung Login */}
-      <div className="absolute top-1/2 left-1/2 w-[90%] max-w-md -translate-x-1/2 -translate-y-1/2">
-        <div className="bg-white/20 backdrop-blur-md rounded-2xl shadow-lg p-8">
+      <div className="w-full h-full flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-black/30 backdrop-blur-lg rounded-2xl shadow-lg p-8">
           <h2 className="text-3xl font-bold text-white mb-6 text-center">
             Chào mừng bạn trở lại
           </h2>
           <form onSubmit={onSubmit}>
-            <InputField
-              type="email"
-              name="email"
-              value={email}
-              onChange={onChange}
-              placeholder="Email"
-              required
-              className="bg-white/50 text-gray-800 placeholder-gray-600 border-none"
-            />
-            <InputField
-              type="password"
-              name="password"
-              value={password}
-              onChange={onChange}
-              placeholder="Mật khẩu"
-              required
-              className="bg-white/50 text-gray-800 placeholder-gray-600 border-none"
-            />
-            <Button primary type="submit" className="w-full mt-4 py-3 text-base">
+            <label className="block text-white text-sm font-semibold mb-1 text-left">Email</label>
+            <InputField type="email" name="email" value={email} onChange={onChange} placeholder="ví dụ: howard.thurman@gmail.com" required />
+            
+            <label className="block text-white text-sm font-semibold mb-1 mt-4 text-left">Mật khẩu</label>
+            <InputField type="password" name="password" value={password} onChange={onChange} required />
+            
+            <Button primary type="submit" className="w-full mt-6 py-3 text-base">
               Đăng Nhập
             </Button>
           </form>
-          <p className="mt-6 text-center text-gray-200 text-sm">
+          <p className="mt-6 text-center text-gray-300 text-sm">
             Bạn chưa có tài khoản?{' '}
             <Link to="/register" className="text-white hover:underline font-semibold">
               Đăng ký ngay
