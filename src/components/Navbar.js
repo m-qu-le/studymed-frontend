@@ -1,6 +1,5 @@
 // src/components/Navbar.js
 import React, { useState, useEffect } from 'react';
-// MỚI: Import thêm useLocation
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from './Button';
@@ -8,19 +7,20 @@ import MobileMenu from './MobileMenu';
 
 function Navbar() {
   const { isAuthenticated, logout, user } = useAuth();
-  const location = useLocation(); // MỚI: Lấy thông tin đường dẫn hiện tại
+  const location = useLocation();
 
-  // MỚI: State để quản lý việc ẩn/hiện navbar và vị trí cuộn cuối cùng
   const [showNav, setShowNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // MỚI: Logic kiểm soát Navbar
+  // MỚI: Xác định xem có phải trang chủ không
+  const isHomePage = location.pathname === '/';
+
   const controlNavbar = () => {
-    // Chỉ áp dụng logic này trên trang dashboard
+    // Logic ẩn/hiện khi cuộn chỉ áp dụng cho trang dashboard
     if (location.pathname === '/dashboard') {
-      if (window.scrollY > lastScrollY && window.scrollY > 100) { // Nếu cuộn xuống và đã cuộn qua 100px
+      if (window.scrollY > lastScrollY && window.scrollY > 100) {
         setShowNav(false);
-      } else { // Nếu cuộn lên
+      } else {
         setShowNav(true);
       }
     } else {
@@ -30,7 +30,6 @@ function Navbar() {
     setLastScrollY(window.scrollY);
   };
 
-  // MỚI: Thêm và xóa event listener khi component mount/unmount hoặc khi vị trí cuộn thay đổi
   useEffect(() => {
     window.addEventListener('scroll', controlNavbar);
     return () => {
@@ -43,12 +42,15 @@ function Navbar() {
     logout();
   };
 
+  // MỚI: Tùy chỉnh màu chữ dựa trên trang chủ
+  const linkColor = isHomePage ? "text-white hover:text-gray-300" : "text-white hover:text-blue-200";
+
   const guestLinks = (
     <>
-      <Link to="/register" className="ml-4 hover:text-blue-200 transition-colors duration-200">
+      <Link to="/register" className={`ml-4 ${linkColor} transition-colors duration-200`}>
         Đăng Ký
       </Link>
-      <Link to="/login" className="ml-4 hover:text-blue-200 transition-colors duration-200">
+      <Link to="/login" className={`ml-4 ${linkColor} transition-colors duration-200`}>
         Đăng Nhập
       </Link>
     </>
@@ -56,23 +58,29 @@ function Navbar() {
 
   const authLinks = (
     <>
-      <Link to="/dashboard" className="ml-4 hover:text-blue-200 transition-colors duration-200">
+      <Link to="/dashboard" className={`ml-4 ${linkColor} transition-colors duration-200`}>
         Dashboard
       </Link>
       {user && (
-        <span className="ml-4 text-blue-200 text-sm">Chào, {user.username || 'Bạn'}</span>
+        <span className={`ml-4 ${isHomePage ? 'text-gray-300' : 'text-blue-200'} text-sm`}>Chào, {user.username || 'Bạn'}</span>
       )}
       <Button onClick={handleLogout} className="ml-4 py-2 px-4 rounded-lg bg-red-500 hover:bg-red-600 text-white shadow-md transition-colors duration-200">
         Đăng Xuất
       </Button>
     </>
   );
+  
+  // MỚI: Tạo class động cho navbar
+  const navBaseClasses = "fixed top-0 left-0 right-0 p-4 z-50 transition-all duration-300 ease-in-out";
+  const navStyleClasses = isHomePage
+    ? "bg-transparent" // Trong suốt trên trang chủ
+    : "backdrop-blur-lg bg-black bg-opacity-30"; // Nền mờ trên các trang khác
+  const navVisibilityClass = showNav ? 'translate-y-0' : '-translate-y-full';
 
   return (
-    // MỚI: Thêm class 'transition-transform' và class điều kiện để ẩn/hiện navbar
-    <nav className={`fixed top-0 left-0 right-0 p-4 text-white z-50 backdrop-blur-lg bg-black bg-opacity-30 transition-transform duration-300 ease-in-out ${showNav ? 'translate-y-0' : '-translate-y-full'}`}> 
+    <nav className={`${navBaseClasses} ${navStyleClasses} ${navVisibilityClass}`}>
       <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold">
+        <Link to="/" className="text-2xl font-bold text-white">
           StudyMed
         </Link>
         <div className="hidden md:flex items-center">
