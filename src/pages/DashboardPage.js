@@ -17,6 +17,15 @@ function DashboardPage() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // State cho modal tùy chọn làm bài
+  const [showQuizOptionsModal, setShowQuizOptionsModal] = useState(false);
+  const [selectedQuizId, setSelectedQuizId] = useState(null);
+  const [quizMode, setQuizMode] = useState('review');
+  const [shuffleQuestions, setShuffleQuestions] = useState(true);
+  // MỚI: State cho tùy chọn thời gian
+  const [timeLimitOption, setTimeLimitOption] = useState('unlimited');
+  const [customTimeLimit, setCustomTimeLimit] = useState(30); // Giá trị mặc định là 30 phút
+
   const currentDate = new Date().toLocaleDateString('vi-VN', {
     weekday: 'long',
     year: 'numeric',
@@ -65,6 +74,24 @@ function DashboardPage() {
     }
   };
 
+  const handleStartQuizClick = (quizId) => {
+    setSelectedQuizId(quizId);
+    setShowQuizOptionsModal(true);
+    setTimeLimitOption('unlimited'); // Reset lại tùy chọn thời gian khi mở modal
+    setCustomTimeLimit(30);
+  };
+
+  const handleConfirmStartQuiz = () => {
+    if (selectedQuizId) {
+      setShowQuizOptionsModal(false);
+      let timeLimit = null;
+      if (timeLimitOption === 'limited') {
+        timeLimit = customTimeLimit * 60; // Chuyển sang giây
+      }
+      navigate(`/quiz/take/${selectedQuizId}?mode=${quizMode}&shuffle=${shuffleQuestions}${timeLimit ? `&timeLimit=${timeLimit}` : ''}`);
+    }
+  };
+
   if (authLoading || loadingQuizzes) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -76,15 +103,13 @@ function DashboardPage() {
   return (
     <div className="relative flex h-dvh bg-gray-100 font-sans overflow-hidden">
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         ></div>
       )}
 
-      {/* Sidebar */}
-      {/* ĐÃ SỬA: Bỏ `lg:fixed` để sidebar luôn `fixed`, giúp transform hoạt động đúng */}
-      <aside 
+      <aside
         className={`fixed top-0 left-0 h-full w-64 bg-white flex flex-col border-r z-30
                     transform transition-transform duration-300 ease-in-out
                     ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -116,11 +141,10 @@ function DashboardPage() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col lg:ml-64">
         <header className="h-16 bg-white border-b flex items-center justify-between p-4">
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="text-gray-700 text-2xl lg:hidden"
           >
             <FiMenu />
@@ -145,12 +169,11 @@ function DashboardPage() {
                   <div className="text-xs text-gray-500 mb-4">
                     <span>Môn: {quiz.subject}</span>
                   </div>
-                  {/* ĐÃ SỬA: Thêm `flex-wrap` để các nút tự xuống dòng */}
                   <div className="flex justify-end gap-2 mt-auto flex-wrap">
                     <Button secondary onClick={() => navigate(`/quiz/edit/${quiz._id}`)} className="text-xs py-1 px-3">
                       Quản lý
                     </Button>
-                    <Button primary onClick={() => navigate(`/quiz/take/${quiz._id}`)} className="text-xs py-1 px-3">
+                    <Button primary onClick={() => handleStartQuizClick(quiz._id)} className="text-xs py-1 px-3">
                       Làm Bài
                     </Button>
                     <Button onClick={() => handleDeleteQuiz(quiz._id)} className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-3">
@@ -171,6 +194,77 @@ function DashboardPage() {
         title="Xác nhận Đăng xuất"
         message="Bạn có chắc chắn muốn đăng xuất khỏi StudyMed không?"
       />
+
+      {showQuizOptionsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
+          <div className="bg-white p-8 rounded-xl shadow-lg max-w-sm w-full mx-4">
+            <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Tùy Chọn Làm Bài</h2>
+            <div className="space-y-6">
+              <div>
+                <p className="font-semibold text-gray-700 mb-2">Chế độ làm bài:</p>
+                <div className="flex flex-col space-y-2">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="quizMode" value="review" checked={quizMode === 'review'} onChange={(e) => setQuizMode(e.target.value)} className="form-radio h-5 w-5 text-primary-blue"/>
+                    <span className="ml-2 text-gray-700">Ôn tập (Xem đáp án sau mỗi câu)</span>
+                  </label>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="quizMode" value="test" checked={quizMode === 'test'} onChange={(e) => setQuizMode(e.target.value)} className="form-radio h-5 w-5 text-primary-blue"/>
+                    <span className="ml-2 text-gray-700">Kiểm tra (Chấm điểm cuối cùng)</span>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700 mb-2">Thứ tự câu hỏi:</p>
+                <div className="flex flex-col space-y-2">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="shuffleQuestions" checked={shuffleQuestions === true} onChange={() => setShuffleQuestions(true)} className="form-radio h-5 w-5 text-primary-blue"/>
+                    <span className="ml-2 text-gray-700">Trộn ngẫu nhiên</span>
+                  </label>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="shuffleQuestions" checked={shuffleQuestions === false} onChange={() => setShuffleQuestions(false)} className="form-radio h-5 w-5 text-primary-blue"/>
+                    <span className="ml-2 text-gray-700">Thứ tự gốc</span>
+                  </label>
+                </div>
+              </div>
+              {/* MỚI: Thêm tùy chọn thời gian */}
+              <div>
+                <p className="font-semibold text-gray-700 mb-2">Thời gian làm bài:</p>
+                <div className="flex flex-col space-y-2">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="timeLimit" value="unlimited" checked={timeLimitOption === 'unlimited'} onChange={(e) => setTimeLimitOption(e.target.value)} className="form-radio h-5 w-5 text-primary-blue"/>
+                    <span className="ml-2 text-gray-700">Không giới hạn</span>
+                  </label>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="timeLimit" value="limited" checked={timeLimitOption === 'limited'} onChange={(e) => setTimeLimitOption(e.target.value)} className="form-radio h-5 w-5 text-primary-blue"/>
+                    <span className="ml-2 text-gray-700">Đếm ngược</span>
+                  </label>
+                  {timeLimitOption === 'limited' && (
+                    <div className="mt-2">
+                      <label htmlFor="customTimeLimit" className="block text-gray-700 text-sm font-semibold mb-1">Chọn số phút:</label>
+                      <input
+                        type="number"
+                        id="customTimeLimit"
+                        value={customTimeLimit}
+                        onChange={(e) => setCustomTimeLimit(Math.max(1, parseInt(e.target.value)))}
+                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        min="1"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-8">
+              <Button secondary onClick={() => setShowQuizOptionsModal(false)}>
+                Hủy
+              </Button>
+              <Button primary onClick={handleConfirmStartQuiz}>
+                Bắt Đầu
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

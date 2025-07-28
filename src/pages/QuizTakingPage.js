@@ -1,435 +1,191 @@
 // src/pages/QuizTakingPage.js
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { useAlert } from '../context/AlertContext';
 import Button from '../components/Button';
-import BookmarkButton from '../components/BookmarkButton';
-
-// Hàm tiện ích để xáo trộn mảng (Fisher-Yates shuffle)
-const shuffleArray = (array) => {
-  let currentIndex = array.length, randomIndex;
-  while (currentIndex !== 0) {
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
-  }
-  return array;
-};
-
-// Chuyển đổi giây thành định dạng HH:MM:SS
-const formatRemainingTime = (seconds) => {
-  if (seconds === null) return 'Không giới hạn';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return [h, m, s]
-    .map(v => v < 10 ? "0" + v : v)
-    .filter((v, i) => v !== "00" || i > 0 || h > 0)
-    .join(":");
-};
-
+import { useAlert } from '../context/AlertContext';
 
 function QuizTakingPage() {
-  const { id } = useParams();
+  const { id: quizId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading, logout } = useAuth();
   const { setAlert } = useAlert();
   const [searchParams] = useSearchParams();
-
-  const quizMode = searchParams.get('mode') || 'review';
-  const shuffleQuestions = searchParams.get('shuffle') === 'true';
+  const mode = searchParams.get('mode') || 'review';
+  const shuffle = searchParams.get('shuffle') === 'true';
+  const timeLimitParam = searchParams.get('timeLimit');
+  const timeLimit = timeLimitParam ? parseInt(timeLimitParam, 10) : null;
 
   const [quiz, setQuiz] = useState(null);
-  const [loadingQuiz, setLoadingQuiz] = useState(true);
-  const [error, setError] = useState(null);
-
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
-  const [quizStarted, setQuizStarted] = useState(false);
-  const [quizFinished, setQuizFinished] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(null);
-  const timerRef = useRef(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const startTimeRef = useRef(Date.now());
-  const [timeElapsed, setTimeElapsed] = useState(0);
+  // MỚI: State cho thời gian
+  const [timeLeft, setTimeLeft] = useState(timeLimit);
+  const [isTimeUp, setIsTimeUp] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
-  const [showFeedback, setShowFeedback] = useState(false); 
-
-  const [shuffledOptionsOrder, setShuffledOptionsOrder] = useState({}); 
-  const [bookmarkedQuestions, setBookmarkedQuestions] = useState([]);
-
-
-  const getToken = useCallback(() => localStorage.getItem('token'), []);
-
-  const fetchBookmarks = useCallback(async () => {
-      if (!isAuthenticated) return;
-      try {
-          const res = await api.get('/api/users/bookmarks'); 
-          setBookmarkedQuestions(res.data.map(q => q.question._id));
-      } catch (err) {
-          console.error('Lỗi khi tải bookmarks:', err);
-          if (err.response?.status === 401) {
-              logout();
-          }
+  const fetchQuiz = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.get(`/api/quizzes/${quizId}`);
+      let questions = [...res.data.questions];
+      if (shuffle) {
+        questions = shuffleArray(questions);
       }
-  }, [isAuthenticated, logout]);
+      setQuiz({ ...res.data, questions });
+      setLoading(false);
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Không thể tải bộ đề.');
+      setLoading(false);
+    }
+  }, [quizId, shuffle]);
 
   useEffect(() => {
-      fetchBookmarks();
-  }, [fetchBookmarks]);
-
-  const handleFinishQuiz = useCallback(() => {
-    setQuizFinished(true);
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    const finalTimeElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    setTimeElapsed(finalTimeElapsed);
-
-    setAlert('Bạn đã hoàn thành bài làm!', 'success');
-
-    navigate(`/quiz/result/${id}`, { 
-      state: { 
-        quizData: quiz, 
-        userAnswers: userAnswers, 
-        quizMode: quizMode,
-        timeTaken: finalTimeElapsed,
-        shuffledOptionsOrder: shuffledOptionsOrder
-      } 
-    });
-  }, [id, navigate, quiz, userAnswers, quizMode, setAlert, shuffledOptionsOrder]);
-
-
-  useEffect(() => {
-    if (!id) {
-      setAlert('Không tìm thấy ID bộ đề.', 'error');
-      navigate('/dashboard');
-      return;
-    }
-
-    const fetchQuiz = async () => {
-      try {
-        setLoadingQuiz(true);
-        setError(null);
-        const res = await api.get(`/api/quizzes/${id}`); 
-
-        let fetchedQuiz = res.data;
-        let tempShuffledOptionsOrder = {};
-
-        if (fetchedQuiz.questions) {
-          fetchedQuiz.questions = fetchedQuiz.questions.map(q => {
-            if (q.questionType !== 'true-false') {
-                const shuffledOptionIds = shuffleArray([...q.options.map(opt => opt._id)]);
-                tempShuffledOptionsOrder[q._id] = shuffledOptionIds;
-                q.options = shuffledOptionIds.map(optId => q.options.find(o => o._id === optId));
-            }
-            return q;
-          });
-
-          if (shuffleQuestions) {
-            fetchedQuiz.questions = shuffleArray([...fetchedQuiz.questions]);
-          }
-        }
-
-        setQuiz(fetchedQuiz);
-        setShuffledOptionsOrder(tempShuffledOptionsOrder);
-
-        if (fetchedQuiz.duration) {
-          const durationRegex = /(\d+)h|(\d+)m|(\d+)s/g;
-          let totalSeconds = 0;
-          let match;
-          while ((match = durationRegex.exec(fetchedQuiz.duration)) !== null) {
-            if (match[1]) totalSeconds += parseInt(match[1]) * 3600;
-            if (match[2]) totalSeconds += parseInt(match[2]) * 60;
-            if (match[3]) totalSeconds += parseInt(match[3]);
-          }
-          setTimeLeft(totalSeconds);
-        } else {
-          setTimeLeft(null);
-        }
-
-        startTimeRef.current = Date.now();
-        setQuizStarted(true);
-
-      } catch (err) {
-        console.error('Lỗi khi tải bộ đề:', err);
-        if (err.response && err.response.status === 404) {
-          setError('Bộ đề không tìm thấy hoặc bạn không có quyền truy cập.');
-          setAlert('Bộ đề không tìm thấy hoặc bạn không có quyền truy cập.', 'error');
-        } else if (err.response && err.response.status === 403) {
-          setError('Bạn không có quyền truy cập bộ đề này.');
-          setAlert('Bạn không có quyền truy cập bộ đề này.', 'error');
-        } else {
-          setError('Lỗi khi tải bộ đề. Vui lòng thử lại.');
-          setAlert('Lỗi khi tải bộ đề. Vui lòng thử lại.', 'error');
-        }
-        navigate('/dashboard');
-      } finally {
-        setLoadingQuiz(false);
-      }
-    };
     fetchQuiz();
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [id, navigate, setAlert, getToken, shuffleQuestions]);
+  }, [fetchQuiz]);
 
   useEffect(() => {
-    if (quizStarted && timeLeft !== null && !quizFinished) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(timerRef.current);
-            setQuizFinished(true);
-            setAlert('Hết giờ! Bài làm của bạn đã kết thúc.', 'info');
-            handleFinishQuiz();
-            return 0;
-          }
-          return prevTime - 1;
-        });
+    if (timeLimit > 0 && !loading && !isTimeUp && !isPaused) {
+      const intervalId = setInterval(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
       }, 1000);
-    } else if (quizFinished && timerRef.current) {
-      clearInterval(timerRef.current);
+      return () => clearInterval(intervalId);
+    } else if (timeLeft === 0 && !isTimeUp) {
+      setIsTimeUp(true);
+      setAlert('Đã hết thời gian làm bài!', 'warning');
     }
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [quizStarted, timeLeft, quizFinished, setAlert, handleFinishQuiz]);
+  }, [timeLimit, loading, isTimeUp, isPaused, setAlert, timeLeft]);
 
-
-  const currentQuestion = quiz?.questions?.[currentQuestionIndex];
-
-  const handleToggleBookmark = async (questionId) => {
-      if (!isAuthenticated) {
-          setAlert('Vui lòng đăng nhập để đánh dấu sao câu hỏi.', 'warning');
-          return;
-      }
-      try {
-          const res = await api.put(`/api/users/bookmark/${questionId}`, {});
-          if (res.data.bookmarked) {
-              setAlert('Đã thêm câu hỏi vào bookmark.', 'success');
-              setBookmarkedQuestions(prev => [...prev, questionId]);
-          } else {
-              setAlert('Đã xóa câu hỏi khỏi bookmark.', 'info');
-              setBookmarkedQuestions(prev => prev.filter(id => id !== questionId));
-          }
-      } catch (err) {
-          console.error('Lỗi khi cập nhật bookmark:', err);
-          setAlert(err.response?.data?.msg || 'Lỗi khi cập nhật bookmark.', 'error');
-          if (err.response?.status === 401) {
-              logout();
-          }
-      }
+  const formatTime = (seconds) => {
+    if (seconds === null) return 'Không giới hạn';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
-
-  const handleAnswerChange = (questionId, optionId, questionType) => {
-    setShowFeedback(false); 
-    setUserAnswers((prevAnswers) => {
-      const currentAnswers = prevAnswers[questionId] || [];
-      let newAnswers;
-
-      if (questionType === 'single-choice' || questionType === 'true-false') {
-        newAnswers = [optionId];
-      } else if (questionType === 'multi-select') {
-        if (currentAnswers.includes(optionId)) {
-          newAnswers = currentAnswers.filter((id) => id !== optionId);
-        } else {
-          newAnswers = [...currentAnswers, optionId];
-        }
+  const shuffleArray = (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = array.questions ? { ...array.questions.find((_, idx) => idx === i) } : { ...array.find((_, idx) => idx === i) };
+      if (array.questions) {
+        array.questions.splice(i, 1, array.questions.find((_, idx) => idx === j));
+        array.questions.splice(j, 1, temp);
       } else {
-        newAnswers = [optionId];
+        array.splice(i, 1, array.find((_, idx) => idx === j));
+        array.splice(j, 1, temp);
       }
-      return {
-        ...prevAnswers,
-        [questionId]: newAnswers,
-      };
-    });
+    }
+    return array;
   };
 
-  const handleNextQuestion = () => {
-    setShowFeedback(false);
-    if (currentQuestionIndex < quiz.questions.length - 1) {
-      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+  const currentQuestion = quiz?.questions && quiz.questions.length > 0 ? quiz.questions.find((_, index) => index === currentQuestionIndex) : null;
+  const questionNumber = currentQuestionIndex + 1;
+  const totalQuestions = quiz?.questions?.length || 0;
+
+  const handleAnswerSelect = (answer) => {
+    setUserAnswers({ ...userAnswers, [currentQuestion?._id]: answer });
+  };
+
+  const goToNextQuestion = () => {
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
-  const handlePreviousQuestion = () => {
-    setShowFeedback(false);
+  const goToPreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prevIndex => prevIndex - 1);
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
 
+  const handleSubmitQuiz = () => {
+    navigate(`/quiz/result/${quizId}`, { state: { userAnswers, quiz } });
+  };
 
-  if (authLoading || loadingQuiz) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-soft-gray p-4">
-        <p className="text-xl text-gray-700">Đang tải bộ đề...</p>
-      </div>
-    );
+  const handleTimeUpSubmit = () => {
+    navigate(`/quiz/result/${quizId}`, { state: { userAnswers, quiz, timeUp: true } });
+  };
+
+  const handleContinueQuiz = () => {
+    setIsPaused(false);
+  };
+
+  const handlePauseQuiz = () => {
+    setIsPaused(true);
+  };
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen">Đang tải câu hỏi...</div>;
   }
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-soft-gray p-4">
-        <p className="text-xl text-red-600 mb-4">{error}</p>
-        <Button primary onClick={() => navigate('/dashboard')}>Quay lại Dashboard</Button>
-      </div>
-    );
+    return <div className="flex justify-center items-center min-h-screen text-red-500">{error}</div>;
   }
 
-  if (!quiz || !quiz.questions || quiz.questions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-soft-gray p-4">
-        <p className="text-xl text-gray-700">Bộ đề này không có câu hỏi nào hoặc không tìm thấy bộ đề.</p>
-        <Button primary className="mt-4" onClick={() => navigate('/dashboard')}>Quay lại Dashboard</Button>
-      </div>
-    );
+  if (!currentQuestion) {
+    return <div className="flex justify-center items-center min-h-screen">Không có câu hỏi nào.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-soft-gray p-4 flex flex-col items-center">
-      <div className="container mx-auto p-8 bg-white rounded-xl shadow-lg max-w-4xl">
-        <h1 className="text-3xl font-bold text-primary-blue mb-4 text-center">{quiz.title}</h1>
-        <p className="text-gray-700 text-lg mb-6 text-center">{quiz.description}</p>
-
-        {/* Thông tin bài làm: Thời gian, Tiến trình */}
-        <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg mb-6 shadow-sm">
-          <div className="text-lg font-semibold text-blue-800">
-            Thời gian: <span className="font-bold">{formatRemainingTime(timeLeft)}</span>
+    <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
+      <div className="relative px-6 pt-10 pb-8 bg-white shadow-xl ring-1 ring-gray-900/5 sm:max-w-lg sm:mx-auto sm:rounded-lg sm:px-10">
+        <div className="max-w-md mx-auto">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">{quiz?.title}</h2>
+            <p className="text-sm text-gray-500 mb-4">Thời gian: {formatTime(timeLeft)}</p>
+            <p className="text-sm text-gray-500">Câu hỏi: {questionNumber} / {totalQuestions}</p>
           </div>
-          <div className="text-lg font-semibold text-blue-800">
-            Câu hỏi: {currentQuestionIndex + 1} / {quiz.questions.length}
-          </div>
-        </div>
-
-        {/* Khối hiển thị câu hỏi */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800 flex-1">
-              Câu {currentQuestionIndex + 1}: {currentQuestion.questionText}
-            </h3>
-            {isAuthenticated && (
-              <BookmarkButton
-                questionId={currentQuestion._id}
-                isBookmarked={bookmarkedQuestions.includes(currentQuestion._id)}
-                onClick={handleToggleBookmark}
-                className="ml-4"
-              />
-            )}
-          </div>
-
-          {currentQuestion.questionImage && (
-            <div className="mb-4 flex justify-center">
-              <img src={currentQuestion.questionImage} alt="Question" className="max-w-full h-auto rounded-md shadow-sm" />
+          <div className="divide-y divide-gray-200">
+            <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
+              <p className="font-bold">Câu {questionNumber}: {currentQuestion?.questionText}</p>
+              <ul>
+                {currentQuestion?.options?.map((option, index) => (
+                  <li key={index} className="py-1">
+                    <label className="inline-flex items-center w-full">
+                      <input
+                        type="radio"
+                        className="form-radio h-5 w-5 text-primary-blue focus:ring-primary-blue border-gray-300"
+                        name={`question-${currentQuestion._id}`}
+                        value={option}
+                        checked={userAnswers?.[currentQuestion._id] === option}
+                        onChange={() => handleAnswerSelect(option)}
+                        disabled={mode === 'review' && quiz?.correctAnswers?.[currentQuestion._id]}
+                      />
+                      <span className="ml-2">{String.fromCharCode(65 + index)}. {option}</span>
+                      {mode === 'review' && quiz?.correctAnswers?.[currentQuestion._id] === option && (
+                        <span className="ml-2 text-green-500">(Đúng)</span>
+                      )}
+                      {mode === 'review' && userAnswers?.[currentQuestion._id] === option && quiz?.correctAnswers?.[currentQuestion._id] !== option && (
+                        <span className="ml-2 text-red-500">(Sai)</span>
+                      )}
+                    </label>
+                  </li>
+                ))}
+              </ul>
             </div>
-          )}
-
-          <div className="space-y-4">
-            {currentQuestion.options.map((option, idx) => (
-              <label key={option._id} className="flex items-start p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors duration-200 ease-out">
-                <input
-                  type={currentQuestion.questionType === 'multi-select' ? 'checkbox' : 'radio'}
-                  name={`question-${currentQuestion._id}`}
-                  value={option._id}
-                  checked={userAnswers[currentQuestion._id]?.includes(option._id) || false}
-                  onChange={() => handleAnswerChange(currentQuestion._id, option._id, currentQuestion.questionType)}
-                  className={`mt-1 h-5 w-5 ${currentQuestion.questionType === 'multi-select' ? 'form-checkbox text-primary-blue rounded' : 'form-radio text-primary-blue'}`}
-                  disabled={quizFinished}
-                />
-                <span className="ml-3 text-gray-800 text-base flex-1">
-                  <span className="font-semibold mr-2">{String.fromCharCode(65 + idx)}.</span>
-                  {option.text}
-                  {option.image && (
-                    <img src={option.image} alt="Option" className="mt-2 max-w-[150px] h-auto rounded-md shadow-sm" />
-                  )}
-                </span>
-              </label>
-            ))}
-          </div>
-
-          {/* Hiển thị feedback */}
-          {quizMode === 'review' && userAnswers[currentQuestion._id] && ( 
-              (currentQuestion.questionType !== 'multi-select' || showFeedback) && (
-                  <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-md">
-                    <h4 className="font-bold mb-2">Phản hồi:</h4>
-                    {currentQuestion.options.map((option, idx) => {
-                      const isUserSelected = userAnswers[currentQuestion._id]?.includes(option._id);
-                      const isCorrect = option.isCorrect;
-                      const optionLetter = String.fromCharCode(65 + idx);
-
-                      if (isUserSelected || isCorrect) {
-                        return (
-                          <div key={option._id} className="mb-2">
-                            {isUserSelected && (
-                              <p className={`${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
-                                Lựa chọn của bạn: <span className="font-semibold">{optionLetter}.</span> {isCorrect ? '(Đúng)' : '(Sai)'}
-                              </p>
-                            )}
-                            {isCorrect && !isUserSelected && (
-                              <p className="text-green-700">
-                                Đáp án đúng: <span className="font-semibold">{optionLetter}.</span>
-                              </p>
-                            )}
-                            {option.feedback && <p className="text-sm italic">{option.feedback}</p>}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })}
-                    {currentQuestion.generalExplanation && (
-                      <p className="mt-2 text-sm">Giải thích chung: {currentQuestion.generalExplanation}</p>
-                    )}
-                  </div>
-              )
-          )}
-        </div>
-
-        {/* MỚI: Cụm nút điều hướng được làm lại cho responsive */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center mt-8 gap-3 w-full">
-          {/* Nút thoát sẽ ở dưới cùng trên màn hình nhỏ và bên trái trên màn hình lớn */}
-          <Button
-            secondary
-            onClick={() => navigate('/dashboard')}
-            className="w-full sm:w-auto" // Đảm bảo nút chiếm toàn bộ chiều rộng trên màn hình nhỏ
-            disabled={quizFinished}
-          >
-            Thoát
-          </Button>
-
-          {/* Cụm nút "Câu trước" và "Câu tiếp theo / Nộp bài" */}
-          <div className="flex w-full sm:w-auto gap-3">
-            <Button
-              secondary
-              onClick={handlePreviousQuestion}
-              disabled={currentQuestionIndex === 0 || quizFinished}
-              className="flex-1" // flex-1 để chiếm không gian bằng nhau
-            >
-              Câu trước
-            </Button>
-
-            {currentQuestion.questionType === 'multi-select' && quizMode === 'review' && userAnswers[currentQuestion._id] && !showFeedback ? (
-                <Button primary onClick={() => setShowFeedback(true)} disabled={quizFinished} className="flex-1">
-                    Xong
-                </Button>
-            ) : currentQuestionIndex < quiz.questions.length - 1 ? (
-                <Button primary onClick={handleNextQuestion} disabled={quizFinished} className="flex-1">
-                  Câu tiếp theo
-                </Button>
-            ) : (
-                <Button primary onClick={handleFinishQuiz} disabled={quizFinished} className="flex-1">
-                  Nộp bài
-                </Button>
-            )}
+            <div className="pt-4 flex justify-between">
+              <Button onClick={navigate(-1)}>Thoát</Button>
+              <div className="space-x-4">
+                {currentQuestionIndex > 0 && (
+                  <Button secondary onClick={goToPreviousQuestion}>Câu trước</Button>
+                )}
+                {!isTimeUp ? (
+                  currentQuestionIndex < totalQuestions - 1 ? (
+                    <Button primary onClick={goToNextQuestion}>Câu tiếp theo</Button>
+                  ) : (
+                    <Button primary onClick={handleSubmitQuiz}>Hoàn thành</Button>
+                  )
+                ) : (
+                  <>
+                    <Button onClick={handleTimeUpSubmit} className="bg-yellow-500 hover:bg-yellow-600 text-white">Xem kết quả</Button>
+                    <Button onClick={handleContinueQuiz} className="bg-gray-400 hover:bg-gray-500 text-white">Làm tiếp</Button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
