@@ -130,6 +130,9 @@ function DashboardPage() {
           <Link to="/bookmarks" className="flex items-center p-2 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
             Câu hỏi đã lưu
           </Link>
+          <Link to="/study-by-tag" className="flex items-center p-2 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+  Ôn tập theo tag
+          </Link>
         </nav>
         <div className="p-4 border-t">
           <button

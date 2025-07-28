@@ -40,6 +40,7 @@ function App() {
             <Route path="/quiz/result/:id" element={<QuizResultPage />} />
             <Route path="/quiz/review/:id" element={<QuizReviewPage />} />
             <Route path="/bookmarks" element={<BookmarkedQuestionsPage />} />
+            <Route path="/study-by-tag" element={<StudyByTagPage />} />
           </Routes>
         </AlertProvider>
       </AuthProvider>
