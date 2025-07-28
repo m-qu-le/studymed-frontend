@@ -189,7 +189,7 @@ function QuizTakingPage() {
   const handlePreviousQuestion = () => {
     setShowFeedback(false);
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+      setCurrentQuestionIndex(prevIndex => prevIndex - 1);
     }
   };
   
