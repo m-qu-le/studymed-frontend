@@ -23,13 +23,14 @@ const AppContent = () => {
   const location = useLocation();
   const path = location.pathname;
 
-  // MỚI: Xác định các trang không cần Navbar hoặc padding
+  // MỚI: Thêm /dashboard vào danh sách các trang không hiển thị Navbar
   const isHomePage = path === '/';
   const isAuthPage = path === '/login' || path === '/register';
+  const isDashboardPage = path === '/dashboard';
   const isQuizTakingPage = path.startsWith('/quiz/take/');
 
-  const showNavbar = !isHomePage && !isAuthPage && !isQuizTakingPage;
-  const shouldApplyPadding = !isHomePage && !isAuthPage && !isQuizTakingPage;
+  const showNavbar = !isHomePage && !isAuthPage && !isQuizTakingPage && !isDashboardPage;
+  const shouldApplyPadding = !isHomePage && !isAuthPage && !isQuizTakingPage && !isDashboardPage;
 
   return (
     <>

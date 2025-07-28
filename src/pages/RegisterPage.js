@@ -48,7 +48,6 @@ function RegisterPage() {
             Chào mừng bạn
           </h2>
           <form onSubmit={onSubmit}>
-            {/* MỚI: Thêm label và sử dụng InputField với style mặc định */}
             <label className="block text-white text-sm font-semibold mb-1 text-left">Tên đăng nhập</label>
             <InputField name="username" value={username} onChange={onChange} required />
             

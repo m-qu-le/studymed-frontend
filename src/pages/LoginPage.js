@@ -1,5 +1,5 @@
 // src/pages/LoginPage.js
-import React, { useState } from 'react'; // ĐÃ SỬA: Thêm dấu ; ở cuối dòng
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import InputField from '../components/InputField';
@@ -46,9 +46,11 @@ function LoginPage() {
           </h2>
           <form onSubmit={onSubmit}>
             <label className="block text-white text-sm font-semibold mb-1 text-left">Email</label>
-            <InputField type="email" name="email" value={email} onChange={onChange} placeholder="ví dụ: howard.thurman@gmail.com" required />
+            {/* MỚI: Đã xóa placeholder */}
+            <InputField type="email" name="email" value={email} onChange={onChange} required />
             
             <label className="block text-white text-sm font-semibold mb-1 mt-4 text-left">Mật khẩu</label>
+            {/* MỚI: Đã xóa placeholder */}
             <InputField type="password" name="password" value={password} onChange={onChange} required />
             
             <Button primary type="submit" className="w-full mt-6 py-3 text-base">

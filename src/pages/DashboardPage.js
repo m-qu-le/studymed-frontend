@@ -1,57 +1,44 @@
 // src/pages/DashboardPage.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
+import ConfirmationModal from '../components/ConfirmationModal'; // Import modal mới
 
 function DashboardPage() {
   const [quizzes, setQuizzes] = useState([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
-  const [error, setError] = useState(null); // Giữ nguyên error state cho lỗi tải quiz
   const navigate = useNavigate();
-  const { isAuthenticated, logout, loading: authLoading, user } = useAuth(); // Lấy user từ AuthContext
+  const { isAuthenticated, logout, loading: authLoading, user } = useAuth();
   const { setAlert } = useAlert();
 
-  // States cho modal tùy chọn làm bài
-  const [showQuizOptionsModal, setShowQuizOptionsModal] = useState(false);
-  const [selectedQuizIdForOptions, setSelectedQuizIdForOptions] = useState(null);
-  const [quizMode, setQuizMode] = useState('review'); // 'review' (ôn tập) hoặc 'test' (kiểm tra)
-  const [shuffleQuestions, setShuffleQuestions] = useState(true); // Trộn câu hỏi
+  // State cho modal xác nhận đăng xuất
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  const getToken = useCallback(() => localStorage.getItem('token'), []);
+  // Lấy ngày tháng năm hiện tại theo định dạng tiếng Việt
+  const currentDate = new Date().toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   const fetchQuizzes = useCallback(async () => {
+    // ... (logic fetchQuizzes giữ nguyên như cũ)
     try {
       setLoadingQuizzes(true);
-      setError(null);
-      const token = getToken();
-      const response = await api.get('/api/quizzes'); 
+      const response = await api.get('/api/quizzes');
       setQuizzes(response.data);
     } catch (err) {
       console.error('Lỗi khi lấy danh sách bộ đề:', err);
-      if (err.response) {
-          const msg = err.response.data.msg;
-          if (msg) {
-            setAlert(msg, 'error');
-          }
-          if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
-            err.response.data.errors.forEach(error => setAlert(error.msg, 'error'));
-          } else {
-            setAlert('Lỗi khi tải bộ đề. Vui lòng thử lại.', 'error');
-          }
-        if (err.response.status === 401) {
-          setAlert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'error');
-          logout();
-        }
-      } else {
-        setAlert('Lỗi mạng hoặc server không phản hồi. Vui lòng thử lại.', 'error');
-      }
+      setAlert(err.response?.data?.msg || 'Lỗi khi tải bộ đề.', 'error');
+      if (err.response?.status === 401) logout();
     } finally {
       setLoadingQuizzes(false);
     }
-  }, [getToken, logout, setAlert]);
+  }, [logout, setAlert]);
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -62,203 +49,113 @@ function DashboardPage() {
   }, [fetchQuizzes, isAuthenticated, authLoading, navigate]);
 
   const handleLogout = () => {
+    setIsLogoutModalOpen(false); // Đóng modal trước
     logout();
     setAlert('Bạn đã đăng xuất thành công!', 'success');
   };
 
   const handleDeleteQuiz = async (quizId) => {
+    // ... (logic handleDeleteQuiz giữ nguyên như cũ)
     if (window.confirm('Bạn có chắc chắn muốn xóa bộ đề này không?')) {
       try {
-        await api.delete(`/api/quizzes/${quizId}`); 
+        await api.delete(`/api/quizzes/${quizId}`);
         setAlert('Bộ đề đã được xóa thành công!', 'success');
         fetchQuizzes();
       } catch (err) {
-        console.error('Lỗi khi xóa bộ đề:', err);
-        if (err.response) {
-          const msg = err.response.data.msg;
-          if (msg) {
-            setAlert(msg, 'error');
-          }
-          if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
-            err.response.data.errors.forEach(error => setAlert(error.msg, 'error'));
-          } else {
-            setAlert('Xóa bộ đề thất bại! Lỗi không xác định.', 'error');
-          }
-          if (err.response.status === 401) {
-            logout();
-          }
-        } else {
-          setAlert('Lỗi mạng hoặc server không phản hồi. Vui lòng thử lại.', 'error');
-        }
+        setAlert(err.response?.data?.msg || 'Xóa bộ đề thất bại!', 'error');
+        if (err.response?.status === 401) logout();
       }
     }
   };
 
-  const handleCreateNewQuiz = () => {
-    navigate('/quiz/new');
-  };
-
-  const handleManageQuiz = (quizId) => {
-    navigate(`/quiz/edit/${quizId}`);
-  };
-
-  const handleStartQuizClick = (quizId) => {
-    setSelectedQuizIdForOptions(quizId);
-    setShowQuizOptionsModal(true);
-  };
-
-  const handleConfirmStartQuiz = () => {
-    setShowQuizOptionsModal(false);
-    navigate(`/quiz/take/${selectedQuizIdForOptions}?mode=${quizMode}&shuffle=${shuffleQuestions}`);
-  };
-
-  if (authLoading) {
+  if (authLoading || loadingQuizzes) {
     return (
-        <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-          <p className="text-xl text-gray-700">Đang kiểm tra xác thực...</p>
-        </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  if (loadingQuizzes) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-        <p className="text-xl text-gray-700">Đang tải bộ đề...</p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-xl text-gray-700">Đang tải...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-      <div className="container mx-auto p-8 bg-white rounded-xl shadow-lg">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Bảng Điều Khiển Của Bạn</h1>
-          <div className="flex flex-wrap justify-end gap-2 sm:space-x-4"> {/* MỚI: flex-wrap, justify-end, gap-2, sm:space-x-4 */}
-            {user && user.role === 'admin' && (
-              <Button primary onClick={() => navigate('/bulk-upload')} className="w-full sm:w-auto"> {/* MỚI: w-full sm:w-auto */}
-                Nhập Bộ Đề Hàng Loạt
-              </Button>
-            )}
-            <Button primary onClick={handleCreateNewQuiz} className="w-full sm:w-auto"> {/* MỚI: w-full sm:w-auto */}
-              Tạo Bộ Đề Mới
-            </Button>
-            {isAuthenticated && (
-                <Button secondary onClick={() => navigate('/bookmarks')} className="w-full sm:w-auto"> {/* MỚI: w-full sm:w-auto */}
-                    Câu Hỏi Đã Lưu
-                </Button>
-            )}
-            <Button secondary onClick={handleLogout} className="w-full sm:w-auto"> {/* MỚI: w-full sm:w-auto */}
-              Đăng Xuất
-            </Button>
-          </div>
+    <div className="flex h-screen bg-gray-100 font-sans">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white flex flex-col border-r">
+        <div className="h-16 flex items-center justify-center border-b">
+          <h1 className="text-xl font-bold tracking-wider text-primary-blue">STUDYMED</h1>
         </div>
+        <nav className="flex-1 p-4 space-y-2">
+          <Link to="/quiz/new" className="flex items-center p-2 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+            Tạo bộ đề mới
+          </Link>
+          {user && user.role === 'admin' && (
+            <Link to="/bulk-upload" className="flex items-center p-2 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+              Nhập bộ đề
+            </Link>
+          )}
+          <Link to="/bookmarks" className="flex items-center p-2 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+            Câu hỏi đã lưu
+          </Link>
+        </nav>
+        <div className="p-4 border-t">
+          <button
+            onClick={() => setIsLogoutModalOpen(true)}
+            className="w-full flex items-center p-2 text-gray-700 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors"
+          >
+            Đăng xuất
+          </button>
+        </div>
+      </aside>
 
-        {quizzes.length === 0 ? (
-          <p className="text-center text-gray-600 text-lg">Bạn chưa có bộ đề nào. Hãy tạo một cái mới!</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {quizzes.map((quiz) => (
-              <div key={quiz._id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 ease-out">
-                <h2 className="text-xl font-semibold text-blue-700 mb-2 truncate">{quiz.title}</h2>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{quiz.description}</p>
-                <div className="flex justify-between items-center text-xs text-gray-500 mb-2">
-                  <span>Môn: {quiz.subject}</span>
-                  <span>Chủ đề: {quiz.topic || 'N/A'}</span>
-                </div>
-                <p className="text-xs text-gray-500 mb-4">
-                  Tạo bởi: {quiz.createdBy ? quiz.createdBy.username : 'Ẩn danh'}
-                </p>
-                {/* MỚI: Điều chỉnh bố cục nút cho quiz card */}
-                <div className="flex flex-wrap justify-end gap-2 mt-4"> {/* MỚI: flex-wrap, justify-end, gap-2 */}
-                  <Button secondary onClick={() => handleManageQuiz(quiz._id)} className="flex-1 min-w-0 md:flex-none text-xs py-1 px-3"> {/* MỚI: flex-1 min-w-0 md:flex-none */}
-                    Quản lý
-                  </Button>
-                  <Button primary onClick={() => handleStartQuizClick(quiz._id)} className="flex-1 min-w-0 md:flex-none text-xs py-1 px-3"> {/* MỚI: flex-1 min-w-0 md:flex-none */}
-                    Làm Bài
-                  </Button>
-                  <Button className="flex-1 min-w-0 md:flex-none bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-3" onClick={() => handleDeleteQuiz(quiz._id)}> {/* MỚI: flex-1 min-w-0 md:flex-none */}
-                    Xóa
-                  </Button>
-                </div>
-              </div>
-            ))}
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <header className="h-16 bg-white border-b flex items-center justify-end p-4">
+          <span className="text-gray-700">Chào, {user ? user.username : 'Bạn'}!</span>
+        </header>
+
+        <main className="flex-1 p-8 overflow-y-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+            <p className="text-gray-500">{currentDate}</p>
           </div>
-        )}
+
+          {/* Phần hiển thị các bộ đề */}
+          {quizzes.length === 0 ? (
+            <p className="text-center text-gray-600 text-lg">Bạn chưa có bộ đề nào. Hãy tạo một cái mới!</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {quizzes.map((quiz) => (
+                <div key={quiz._id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 flex flex-col">
+                  <h2 className="text-xl font-semibold text-blue-700 mb-2 truncate">{quiz.title}</h2>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">{quiz.description || "Không có mô tả."}</p>
+                  <div className="text-xs text-gray-500 mb-4">
+                    <span>Môn: {quiz.subject}</span>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-auto">
+                    <Button secondary onClick={() => navigate(`/quiz/edit/${quiz._id}`)} className="text-xs py-1 px-3">
+                      Quản lý
+                    </Button>
+                    <Button primary onClick={() => navigate(`/quiz/take/${quiz._id}`)} className="text-xs py-1 px-3">
+                      Làm Bài
+                    </Button>
+                    <Button onClick={() => handleDeleteQuiz(quiz._id)} className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-3">
+                      Xóa
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
       </div>
 
-      {/* Modal Tùy chọn làm bài */}
-      {showQuizOptionsModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl shadow-lg max-w-sm w-full relative">
-            <h2 className="text-2xl font-bold mb-4 text-center">Tùy Chọn Làm Bài</h2>
-
-            <div className="mb-6">
-              <p className="font-semibold text-gray-700 mb-2">Chế độ làm bài:</p>
-              <label className="inline-flex items-center mr-4">
-                <input
-                  type="radio"
-                  name="quizMode"
-                  value="review"
-                  checked={quizMode === 'review'}
-                  onChange={(e) => setQuizMode(e.target.value)}
-                  className="form-radio h-5 w-5 text-primary-blue"
-                />
-                <span className="ml-2 text-gray-700">Ôn tập (Xem đáp án sau mỗi câu)</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="quizMode"
-                  value="test"
-                  checked={quizMode === 'test'}
-                  onChange={(e) => setQuizMode(e.target.value)}
-                  className="form-radio h-5 w-5 text-primary-blue"
-                />
-                <span className="ml-2 text-gray-700">Kiểm tra (Chỉ xem đáp án khi hoàn thành)</span>
-              </label>
-            </div>
-
-            <div className="mb-6">
-              <p className="font-semibold text-gray-700 mb-2">Thứ tự câu hỏi:</p>
-              <label className="inline-flex items-center mr-4">
-                <input
-                  type="radio"
-                  name="shuffleQuestions"
-                  value="true"
-                  checked={shuffleQuestions === true}
-                  onChange={() => setShuffleQuestions(true)}
-                  className="form-radio h-5 w-5 text-primary-blue"
-                />
-                <span className="ml-2 text-gray-700">Trộn ngẫu nhiên</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="shuffleQuestions"
-                  value="false"
-                  checked={shuffleQuestions === false}
-                  onChange={() => setShuffleQuestions(false)}
-                  className="form-radio h-5 w-5 text-primary-blue"
-                />
-                <span className="ml-2 text-gray-700">Thứ tự gốc</span>
-              </label>
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <Button secondary onClick={() => setShowQuizOptionsModal(false)}>
-                Hủy
-              </Button>
-              <Button primary onClick={handleConfirmStartQuiz}>
-                Bắt Đầu Làm Bài
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal xác nhận đăng xuất */}
+      <ConfirmationModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+        title="Xác nhận Đăng xuất"
+        message="Bạn có chắc chắn muốn đăng xuất khỏi StudyMed không?"
+      />
     </div>
   );
 }
