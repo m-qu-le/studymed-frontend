@@ -47,13 +47,28 @@ function StudyByTagPage() {
     );
   };
 
-  const handleSubmit = (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Chuẩn bị bắt đầu buổi học với các lựa chọn:");
-    console.log("Tags:", selectedTags);
-    console.log("Difficulties:", selectedDifficulties);
-    console.log("Number of Questions:", numberOfQuestions);
-    setAlert("Chức năng này sẽ được hoàn thiện ở bước sau!", "info");
+    if (numberOfQuestions <= 0) {
+      setAlert('Vui lòng chọn số lượng câu hỏi lớn hơn 0.', 'error');
+      return;
+    }
+    try {
+      const criteria = {
+        tags: selectedTags,
+        difficulties: selectedDifficulties,
+        numberOfQuestions,
+      };
+      // Gọi API để tạo session
+      const res = await api.post('/api/study/session', criteria);
+      
+      // Chuyển sang trang làm bài với dữ liệu "bộ đề ảo" trong state
+      // Chúng ta dùng "virtual" như một ID giả để route hoạt động
+      navigate('/quiz/take/virtual', { state: { virtualQuiz: res.data } });
+
+    } catch (err) {
+      setAlert(err.response?.data?.msg || 'Không thể tạo buổi ôn tập.', 'error');
+    }
   };
 
   if (loading) {

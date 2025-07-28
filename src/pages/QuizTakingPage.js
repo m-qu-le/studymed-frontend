@@ -1,6 +1,6 @@
 // src/pages/QuizTakingPage.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'; // MỚI: Thêm useLocation
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
@@ -31,6 +31,7 @@ const formatTime = (seconds) => {
 function QuizTakingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // MỚI: Dùng location để lấy state
   const { isAuthenticated, logout } = useAuth();
   const { setAlert } = useAlert();
   const [searchParams] = useSearchParams();
@@ -45,13 +46,12 @@ function QuizTakingPage() {
   const [userAnswers, setUserAnswers] = useState({});
   const [shuffledOptionsOrder, setShuffledOptionsOrder] = useState({});
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState([]);
-  
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
-  
+  const [showFeedback, setShowFeedback] = useState(false);
   const timerRef = useRef(null);
-
+  
   const fetchBookmarks = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
@@ -61,65 +61,72 @@ function QuizTakingPage() {
       if (err.response?.status === 401) logout();
     }
   }, [isAuthenticated, logout]);
-
-  useEffect(() => {
-    fetchBookmarks();
-  }, [fetchBookmarks]);
+  
+  useEffect(() => { fetchBookmarks(); }, [fetchBookmarks]);
 
   const handleSubmitQuiz = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     const startTime = localStorage.getItem('quizStartTime');
     const timeTaken = startTime ? Math.floor((Date.now() - parseInt(startTime, 10)) / 1000) : 0;
     
-    navigate(`/quiz/result/${id}`, {
+    // ĐÃ SỬA: Dùng quizId thực hoặc 'virtual' cho bộ đề ảo
+    const quizId = id || 'virtual';
+    
+    navigate(`/quiz/result/${quizId}`, {
       state: {
-        quizData: quiz,
-        userAnswers: userAnswers,
-        quizMode: quizMode,
-        timeTaken: timeTaken,
-        shuffledOptionsOrder: shuffledOptionsOrder
+        quizData: quiz, userAnswers: userAnswers, quizMode: quizMode,
+        timeTaken: timeTaken, shuffledOptionsOrder: shuffledOptionsOrder
       }
     });
     localStorage.removeItem('quizStartTime');
   }, [id, navigate, quiz, userAnswers, quizMode, shuffledOptionsOrder]);
 
-  // ĐÃ SỬA: Xóa `setAlert` khỏi dependency array của useCallback để phá vỡ vòng lặp
-  const fetchQuizAndSetup = useCallback(async () => {
-    try {
-      setLoadingQuiz(true);
-      const res = await api.get(`/api/quizzes/${id}`);
-      let fetchedQuiz = res.data;
+  // ĐÃ SỬA: Logic lấy dữ liệu chính
+  useEffect(() => {
+    const setupQuiz = (quizData) => {
+      let processedQuiz = { ...quizData };
       let tempShuffledOptionsOrder = {};
-
-      if (fetchedQuiz.questions) {
-        fetchedQuiz.questions.forEach(q => {
+      if (processedQuiz.questions) {
+        processedQuiz.questions.forEach(q => {
           if (q.questionType !== 'true-false') {
             const shuffledOpts = shuffleArray([...q.options]);
             tempShuffledOptionsOrder[q._id] = shuffledOpts.map(opt => opt._id);
             q.options = shuffledOpts;
           }
         });
-
         if (shuffleQuestions) {
-          fetchedQuiz.questions = shuffleArray([...fetchedQuiz.questions]);
+          processedQuiz.questions = shuffleArray([...processedQuiz.questions]);
         }
       }
-
-      setQuiz(fetchedQuiz);
+      setQuiz(processedQuiz);
       setShuffledOptionsOrder(tempShuffledOptionsOrder);
       localStorage.setItem('quizStartTime', Date.now().toString());
-    } catch (err) {
-      setAlert('Không thể tải bộ đề.', 'error');
-      navigate('/dashboard');
-    } finally {
       setLoadingQuiz(false);
-    }
-  }, [id, navigate, shuffleQuestions]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
 
-  useEffect(() => {
-    fetchQuizAndSetup();
-  }, [fetchQuizAndSetup]);
+    const fetchQuizById = async () => {
+      try {
+        setLoadingQuiz(true);
+        const res = await api.get(`/api/quizzes/${id}`);
+        setupQuiz(res.data);
+      } catch (err) {
+        setAlert('Không thể tải bộ đề.', 'error');
+        navigate('/dashboard');
+      }
+    };
+
+    // Logic chính: Kiểm tra xem có bộ đề ảo từ state không
+    if (location.state?.virtualQuiz) {
+      setupQuiz(location.state.virtualQuiz);
+    } else if (id && id !== 'virtual') {
+      fetchQuizById();
+    } else {
+      setAlert('Không có dữ liệu bộ đề.', 'error');
+      navigate('/dashboard');
+    }
+  }, [id, location.state, navigate, setAlert, shuffleQuestions]);
   
+  // Timer useEffect giữ nguyên
   useEffect(() => {
     if (timeLeft === null || isTimerPaused || loadingQuiz) {
       if(timerRef.current) clearInterval(timerRef.current);
@@ -139,8 +146,6 @@ function QuizTakingPage() {
   
     return () => clearInterval(timerRef.current);
   }, [timeLeft, isTimerPaused, loadingQuiz, isTimeUp, setAlert]);
-
-  const [showFeedback, setShowFeedback] = useState(false);
 
   const handleToggleBookmark = async (questionId) => {
     if (!isAuthenticated) return;

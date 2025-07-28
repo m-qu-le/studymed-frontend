@@ -1,61 +1,49 @@
 // src/pages/QuizResultPage.js
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Button from '../components/Button';
 import { useAlert } from '../context/AlertContext';
 
 function QuizResultPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { id } = useParams(); // Lấy id từ URL (có thể là 'virtual')
   const { setAlert } = useAlert();
 
   const [score, setScore] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
   const [incorrectAnswersCount, setIncorrectAnswersCount] = useState(0);
-  const [timeTaken, setTimeTaken] = useState('');
+  const [timeTaken, setTimeTaken] = useState(0);
   const [quizTitle, setQuizTitle] = useState('');
-  const [quizMode, setQuizMode] = useState('');
-  const [quizId, setQuizId] = useState(null);
-  const [userAnswersData, setUserAnswersData] = useState({});
-  const [shuffledOptionsOrderData, setShuffledOptionsOrderData] = useState({}); // MỚI: Lưu thứ tự đáp án đã trộn
 
   useEffect(() => {
-    if (location.state && location.state.quizData && location.state.userAnswers && location.state.quizMode) {
-      const { quizData, userAnswers, quizMode, timeTaken, shuffledOptionsOrder } = location.state; // MỚI: Lấy shuffledOptionsOrder
-      setQuizId(quizData._id);
+    // Logic chính để xử lý kết quả
+    if (location.state?.quizData) {
+      const { quizData, userAnswers, timeTaken } = location.state;
       setQuizTitle(quizData.title);
-      setQuizMode(quizMode);
       setTimeTaken(timeTaken);
-      setUserAnswersData(userAnswers);
-      setShuffledOptionsOrderData(shuffledOptionsOrder || {}); // MỚI: Lưu thứ tự đã trộn
 
       let correct = 0;
-      let incorrect = 0;
       const total = quizData.questions.length;
 
       quizData.questions.forEach(q => {
         const userAnswerIds = userAnswers[q._id] || [];
+        const correctOptionIds = q.options.filter(opt => opt.isCorrect).map(opt => opt._id);
+        
+        const isCorrectAnswer = userAnswerIds.length === correctOptionIds.length &&
+                                userAnswerIds.every(id => correctOptionIds.includes(id)) &&
+                                userAnswerIds.length > 0;
 
-        const correctOptionIds = q.options
-                                .filter(opt => opt.isCorrect)
-                                .map(opt => opt._id);
-
-        const isCorrectAnswer = (userAnswerIds.length === correctOptionIds.length) &&
-                                userAnswerIds.every(id => correctOptionIds.includes(id));
-
-        if (isCorrectAnswer && userAnswerIds.length > 0) {
+        if (isCorrectAnswer) {
           correct++;
-        } else if (userAnswerIds.length > 0) {
-          incorrect++;
         }
       });
 
       setCorrectAnswersCount(correct);
-      setIncorrectAnswersCount(incorrect);
+      setIncorrectAnswersCount(total - correct);
       setTotalQuestions(total);
       setScore(total > 0 ? ((correct / total) * 100).toFixed(2) : 0);
-
     } else {
       setAlert('Không có dữ liệu kết quả bài làm. Vui lòng làm bài lại.', 'error');
       navigate('/dashboard');
@@ -63,7 +51,8 @@ function QuizResultPage() {
   }, [location.state, navigate, setAlert]);
 
   const formatTime = (seconds) => {
-    if (typeof seconds !== 'number' || isNaN(seconds)) return 'N/A';
+    if (seconds === null || isNaN(seconds)) return '00:00:00';
+    if (seconds < 0) seconds = 0;
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
@@ -73,47 +62,52 @@ function QuizResultPage() {
   };
 
   const handleReviewMistakes = () => {
-    if (quizId && userAnswersData) {
-      // MỚI: Truyền shuffledOptionsOrderData
-      navigate(`/quiz/review/${quizId}`, { state: { userAnswers: userAnswersData, quizMode: quizMode, shuffledOptionsOrder: shuffledOptionsOrderData } }); 
+    // Chỉ cho phép xem lại nếu là bộ đề thật (có ID)
+    if (id && id !== 'virtual' && location.state) {
+      navigate(`/quiz/review/${id}`, { state: location.state }); 
     } else {
-      setAlert('Không có dữ liệu để xem lại.', 'warning');
+      setAlert('Chỉ có thể xem lại đáp án của các bộ đề cố định.', 'info');
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-      <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full text-center">
-        <h1 className="text-3xl font-bold text-primary-blue mb-4">Kết Quả Bài Làm</h1>
-        <p className="text-gray-700 text-xl mb-6">Bộ đề: <span className="font-semibold">{quizTitle}</span></p>
+    <div className="min-h-screen bg-soft-gray p-4 flex flex-col items-center justify-center">
+      <div className="container mx-auto p-6 md:p-10 bg-white rounded-xl shadow-lg max-w-2xl text-center">
+        <h1 className="text-2xl md:text-3xl font-bold text-primary-blue mb-2">Kết quả bài làm</h1>
+        <p className="text-xl font-semibold text-gray-700 mb-6">{quizTitle}</p>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-blue-50 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600">Tổng số câu</p>
-            <p className="text-3xl font-bold text-blue-700">{totalQuestions}</p>
+        <div className="mb-8">
+          <div className={`text-5xl font-bold ${score >= 50 ? 'text-green-500' : 'text-red-500'}`}>
+            {score}%
           </div>
-          <div className="bg-green-50 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600">Số câu đúng</p>
-            <p className="text-3xl font-bold text-green-700">{correctAnswersCount}</p>
-          </div>
-          <div className="bg-red-50 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600">Số câu sai</p>
-            <p className="text-3xl font-bold text-red-700">{incorrectAnswersCount}</p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600">Điểm số</p>
-            <p className="text-3xl font-bold text-purple-700">{score}%</p>
-          </div>
+          <p className="text-lg text-gray-600 mt-2">Điểm số của bạn</p>
         </div>
 
-        <p className="text-lg text-gray-700 mb-6">Thời gian hoàn thành: <span className="font-semibold">{formatTime(timeTaken)}</span></p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mb-8 p-4 bg-gray-50 rounded-lg">
+          <div>
+            <p className="text-2xl font-bold text-blue-600">{correctAnswersCount}</p>
+            <p className="text-sm text-gray-500">Câu trả lời đúng</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-red-600">{incorrectAnswersCount}</p>
+            <p className="text-sm text-gray-500">Câu trả lời sai</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-700">{totalQuestions}</p>
+            <p className="text-sm text-gray-500">Tổng số câu</p>
+          </div>
+        </div>
+        
+        <div className="mb-8 text-lg text-gray-800">
+          <p>Thời gian hoàn thành: <span className="font-semibold">{formatTime(timeTaken)}</span></p>
+        </div>
 
-        <div className="flex justify-center space-x-4">
-          <Button secondary onClick={() => navigate('/dashboard')}>
-            Về Dashboard
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8">
+          <Button primary onClick={handleReviewMistakes} disabled={id === 'virtual'}>
+            Xem lại bài làm
           </Button>
-          <Button primary onClick={handleReviewMistakes} disabled={incorrectAnswersCount === 0 && correctAnswersCount === totalQuestions && totalQuestions > 0}> {/* Sửa điều kiện disable */}
-            Xem lại đáp án
+          <Button secondary onClick={() => navigate('/dashboard')}>
+            Về trang chủ
           </Button>
         </div>
       </div>
