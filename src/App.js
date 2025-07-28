@@ -15,6 +15,7 @@ import QuizTakingPage from './pages/QuizTakingPage';
 import QuizResultPage from './pages/QuizResultPage';
 import QuizReviewPage from './pages/QuizReviewPage';
 import BookmarkedQuestionsPage from './pages/BookmarkedQuestionsPage';
+import StudyByTagPage from './pages/StudyByTagPage';
 
 import { AlertProvider } from './context/AlertContext';
 import { AuthProvider } from './context/AuthContext';
