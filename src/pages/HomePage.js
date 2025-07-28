@@ -2,7 +2,8 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import HomeBackground from '../assets/home-background.jpg'; 
+// MỚI: Đảm bảo tên file được import là chính xác
+import HomeBackground from '../assets/home-background-2.jpg'; 
 
 function HomePage() {
   const { isAuthenticated } = useAuth();
@@ -44,7 +45,6 @@ function HomePage() {
       </header>
 
       {/* Nội dung chính của trang chủ */}
-      {/* MỚI: Tăng giá trị "bottom" trên mobile (bottom-48) và giữ nguyên trên desktop (md:bottom-32) */}
       <main className="absolute bottom-48 left-8 right-8 md:bottom-32 md:left-32 md:right-auto max-w-lg">
         <h1 className="text-5xl md:text-6xl font-bold mb-4 lowercase">
           welcome
