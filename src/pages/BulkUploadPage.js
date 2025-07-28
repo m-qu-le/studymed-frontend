@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 
+// MỚI: Cập nhật lại hướng dẫn để bao gồm "tags" và "difficulty"
 const jsonFormatGuide = `[
   {
     "title": "Tên bộ đề mẫu",
@@ -15,12 +16,14 @@ const jsonFormatGuide = `[
     "questions": [
       {
         "questionText": "Nội dung câu hỏi ở đây?",
-        "questionType": "single-choice", // Các loại: "single-choice", "multi-select", "true-false"
-        "generalExplanation": "Giải thích chung cho toàn bộ câu hỏi.",
+        "questionType": "single-choice",
+        "generalExplanation": "Giải thích chung cho câu hỏi.",
+        "tags": ["tim mạch", "điện tâm đồ"],
+        "difficulty": "Vận dụng",
         "options": [
-          { "text": "Lựa chọn A (Sai)", "isCorrect": false, "feedback": "Giải thích riêng tại sao lựa chọn A sai." },
-          { "text": "Lựa chọn B (Đúng)", "isCorrect": true, "feedback": "Giải thích riêng tại sao lựa chọn B đúng." },
-          { "text": "Lựa chọn C (Sai)", "isCorrect": false, "feedback": "Giải thích riêng tại sao lựa chọn C sai." }
+          { "text": "Lựa chọn A (Sai)", "isCorrect": false, "feedback": "Giải thích tại sao A sai." },
+          { "text": "Lựa chọn B (Đúng)", "isCorrect": true, "feedback": "Giải thích tại sao B đúng." },
+          { "text": "Lựa chọn C (Sai)", "isCorrect": false, "feedback": "Giải thích tại sao C sai." }
         ]
       }
     ]
@@ -36,7 +39,6 @@ function BulkUploadPage() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // MỚI: State để quản lý việc hiển thị hướng dẫn
   const [showFormatGuide, setShowFormatGuide] = useState(false);
 
   useEffect(() => {
@@ -47,7 +49,15 @@ function BulkUploadPage() {
   }, [isAuthenticated, user, authLoading, navigate, setAlert]);
 
   const handleFileChange = (event) => {
-    // ... logic giữ nguyên
+    const file = event.target.files[0];
+    if (file && file.type === 'application/json') {
+      setSelectedFile(file);
+      setFileName(file.name);
+    } else {
+      setSelectedFile(null);
+      setFileName('');
+      setAlert('Vui lòng chỉ chọn file JSON.', 'error');
+    }
   };
 
   const handleDragOver = useCallback((event) => {
@@ -60,11 +70,38 @@ function BulkUploadPage() {
   }, []);
 
   const handleDrop = useCallback((event) => {
-    // ... logic giữ nguyên
+    event.preventDefault();
+    setIsDragOver(false);
+    const file = event.dataTransfer.files[0];
+    if (file && file.type === 'application/json') {
+      setSelectedFile(file);
+      setFileName(file.name);
+    } else {
+      setSelectedFile(null);
+      setFileName('');
+      setAlert('Vui lòng chỉ kéo thả file JSON.', 'error');
+    }
   }, [setAlert]);
 
   const handleUpload = async () => {
-    // ... logic giữ nguyên
+    if (!selectedFile) {
+      setAlert('Vui lòng chọn một file JSON để tải lên.', 'warning');
+      return;
+    }
+
+    try {
+      const fileContent = await selectedFile.text();
+      const quizzesData = JSON.parse(fileContent);
+
+      await api.post('/api/quizzes/bulk-upload', quizzesData);
+
+      setAlert(`Đã nhập thành công ${quizzesData.length} bộ đề.`, 'success');
+      setSelectedFile(null);
+      setFileName('');
+    } catch (err) {
+      console.error('Lỗi khi tải lên bộ đề:', err);
+      setAlert(err.response?.data?.msg || 'Lỗi khi tải lên file.', 'error');
+    }
   };
 
   if (authLoading || (!isAuthenticated && !authLoading)) {
@@ -82,7 +119,6 @@ function BulkUploadPage() {
         
         <div className="text-gray-600 text-sm mb-4 text-center">
           <p>Vui lòng tải lên một file JSON chứa một mảng các bộ đề.</p>
-          {/* MỚI: Thay thế alert() bằng nút bật/tắt */}
           <button 
             onClick={() => setShowFormatGuide(!showFormatGuide)} 
             className="text-blue-600 hover:underline font-semibold"
@@ -91,7 +127,6 @@ function BulkUploadPage() {
           </button>
         </div>
 
-        {/* MỚI: Khối hiển thị hướng dẫn */}
         {showFormatGuide && (
           <div className="bg-gray-800 text-white rounded-lg p-4 mb-4 text-left text-xs overflow-x-auto">
             <pre><code>{jsonFormatGuide}</code></pre>
@@ -120,7 +155,6 @@ function BulkUploadPage() {
           )}
         </div>
 
-        {/* MỚI: Thêm nút "Về Dashboard" và gom 2 nút vào một flex container */}
         <div className="flex flex-col sm:flex-row-reverse gap-3 mt-6">
             <Button primary onClick={handleUpload} className="w-full" disabled={!selectedFile}>
                 Tải Lên Bộ Đề
