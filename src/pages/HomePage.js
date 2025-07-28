@@ -1,5 +1,5 @@
 // src/pages/HomePage.js
-import React from 'react';
+import React, { useEffect } from 'react'; // MỚI: import thêm useEffect
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import HomeBackground from '../assets/home-background.jpg'; 
@@ -7,9 +7,20 @@ import HomeBackground from '../assets/home-background.jpg';
 function HomePage() {
   const { isAuthenticated } = useAuth();
 
+  // MỚI: Thêm hook để điều khiển việc cuộn của trang
+  useEffect(() => {
+    // Khi component được hiển thị, thêm class để chặn cuộn
+    document.body.classList.add('overflow-hidden');
+
+    // Khi component bị ẩn đi (người dùng chuyển trang), xóa class để các trang khác cuộn bình thường
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, []); // Mảng rỗng đảm bảo hiệu ứng này chỉ chạy 1 lần khi vào và 1 lần khi rời đi
+
   return (
     <div 
-      className="relative w-full h-screen bg-cover bg-center text-white font-sans overflow-hidden" 
+      className="fixed top-0 left-0 w-full h-full bg-cover bg-center text-white font-sans" 
       style={{ backgroundImage: `url(${HomeBackground})` }}
     >
       {/* Header riêng cho trang chủ */}
@@ -37,7 +48,6 @@ function HomePage() {
       </header>
 
       {/* Nội dung chính của trang chủ */}
-      {/* MỚI: Tăng giá trị "bottom" để đẩy khối chữ lên cao hơn */}
       <main className="absolute bottom-32 left-8 right-8 md:bottom-32 md:left-32 md:right-auto max-w-lg">
         <h1 className="text-5xl md:text-6xl font-bold mb-4 lowercase">
           welcome
