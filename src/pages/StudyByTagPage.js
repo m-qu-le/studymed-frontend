@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Button from '../components/Button';
 import { useAlert } from '../context/AlertContext';
+import InputField from '../components/InputField'; // MỚI: Thêm import bị thiếu
 
 function StudyByTagPage() {
   const navigate = useNavigate();
@@ -12,7 +13,6 @@ function StudyByTagPage() {
   const [filters, setFilters] = useState({ tags: [], difficulties: [] });
   const [loading, setLoading] = useState(true);
   
-  // State for user selections
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedDifficulties, setSelectedDifficulties] = useState([]);
   const [numberOfQuestions, setNumberOfQuestions] = useState(10);
@@ -41,14 +41,14 @@ function StudyByTagPage() {
   };
 
   const handleDifficultyChange = (difficulty) => {
+    // ĐÃ SỬA: Lỗi typo 'd' thành 'difficulty'
     setSelectedDifficulties(prev =>
-      prev.includes(difficulty) ? prev.filter(d => d !== difficulty) : [...prev, d]
+      prev.includes(difficulty) ? prev.filter(d => d !== difficulty) : [...prev, difficulty]
     );
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Logic để gọi API tạo session và chuyển trang sẽ được thêm ở bước tiếp theo
     console.log("Chuẩn bị bắt đầu buổi học với các lựa chọn:");
     console.log("Tags:", selectedTags);
     console.log("Difficulties:", selectedDifficulties);
