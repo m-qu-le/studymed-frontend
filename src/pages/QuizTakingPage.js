@@ -1,7 +1,7 @@
 // src/pages/QuizTakingPage.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import api from '../services/api'; // MỚI: Import api từ '../services/api'
+import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import Button from '../components/Button';
@@ -67,7 +67,6 @@ function QuizTakingPage() {
   const fetchBookmarks = useCallback(async () => {
       if (!isAuthenticated) return;
       try {
-          // MỚI: Sử dụng api.get
           const res = await api.get('/api/users/bookmarks'); 
           setBookmarkedQuestions(res.data.map(q => q.question._id));
       } catch (err) {
@@ -115,7 +114,6 @@ function QuizTakingPage() {
       try {
         setLoadingQuiz(true);
         setError(null);
-        // MỚI: Sử dụng api.get
         const res = await api.get(`/api/quizzes/${id}`); 
 
         let fetchedQuiz = res.data;
@@ -215,7 +213,6 @@ function QuizTakingPage() {
           return;
       }
       try {
-          // MỚI: Sử dụng api.put
           const res = await api.put(`/api/users/bookmark/${questionId}`, {});
           if (res.data.bookmarked) {
               setAlert('Đã thêm câu hỏi vào bookmark.', 'success');

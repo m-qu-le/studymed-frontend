@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api'; // MỚI: Import api từ '../services/api'
+import api from '../services/api';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
@@ -26,7 +26,7 @@ function DashboardPage() {
     try {
       setLoadingQuizzes(true);
       setError(null);
-      // MỚI: Sử dụng api.get. Interceptor sẽ tự thêm Authorization header
+      const token = getToken();
       const response = await api.get('/api/quizzes'); 
       setQuizzes(response.data);
     } catch (err) {
@@ -69,7 +69,6 @@ function DashboardPage() {
   const handleDeleteQuiz = async (quizId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa bộ đề này không?')) {
       try {
-        // MỚI: Sử dụng api.delete. Interceptor sẽ tự thêm Authorization header
         await api.delete(`/api/quizzes/${quizId}`); 
         setAlert('Bộ đề đã được xóa thành công!', 'success');
         fetchQuizzes();
@@ -138,21 +137,21 @@ function DashboardPage() {
       <div className="container mx-auto p-8 bg-white rounded-xl shadow-lg">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Bảng Điều Khiển Của Bạn</h1>
-          <div className="space-x-4">
+          <div className="flex flex-wrap justify-end gap-2 sm:space-x-4"> {/* MỚI: flex-wrap, justify-end, gap-2, sm:space-x-4 */}
             {user && user.role === 'admin' && (
-              <Button primary onClick={() => navigate('/bulk-upload')}>
+              <Button primary onClick={() => navigate('/bulk-upload')} className="w-full sm:w-auto"> {/* MỚI: w-full sm:w-auto */}
                 Nhập Bộ Đề Hàng Loạt
               </Button>
             )}
-            <Button primary onClick={handleCreateNewQuiz}>
+            <Button primary onClick={handleCreateNewQuiz} className="w-full sm:w-auto"> {/* MỚI: w-full sm:w-auto */}
               Tạo Bộ Đề Mới
             </Button>
             {isAuthenticated && (
-                <Button secondary onClick={() => navigate('/bookmarks')}>
+                <Button secondary onClick={() => navigate('/bookmarks')} className="w-full sm:w-auto"> {/* MỚI: w-full sm:w-auto */}
                     Câu Hỏi Đã Lưu
                 </Button>
             )}
-            <Button secondary onClick={handleLogout}>
+            <Button secondary onClick={handleLogout} className="w-full sm:w-auto"> {/* MỚI: w-full sm:w-auto */}
               Đăng Xuất
             </Button>
           </div>
@@ -173,14 +172,15 @@ function DashboardPage() {
                 <p className="text-xs text-gray-500 mb-4">
                   Tạo bởi: {quiz.createdBy ? quiz.createdBy.username : 'Ẩn danh'}
                 </p>
-                <div className="flex justify-end space-x-2">
-                  <Button secondary onClick={() => handleManageQuiz(quiz._id)} className="text-xs py-1 px-3">
+                {/* MỚI: Điều chỉnh bố cục nút cho quiz card */}
+                <div className="flex flex-wrap justify-end gap-2 mt-4"> {/* MỚI: flex-wrap, justify-end, gap-2 */}
+                  <Button secondary onClick={() => handleManageQuiz(quiz._id)} className="flex-1 min-w-0 md:flex-none text-xs py-1 px-3"> {/* MỚI: flex-1 min-w-0 md:flex-none */}
                     Quản lý
                   </Button>
-                  <Button primary onClick={() => handleStartQuizClick(quiz._id)} className="text-xs py-1 px-3">
+                  <Button primary onClick={() => handleStartQuizClick(quiz._id)} className="flex-1 min-w-0 md:flex-none text-xs py-1 px-3"> {/* MỚI: flex-1 min-w-0 md:flex-none */}
                     Làm Bài
                   </Button>
-                  <Button className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-3" onClick={() => handleDeleteQuiz(quiz._id)}>
+                  <Button className="flex-1 min-w-0 md:flex-none bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-3" onClick={() => handleDeleteQuiz(quiz._id)}> {/* MỚI: flex-1 min-w-0 md:flex-none */}
                     Xóa
                   </Button>
                 </div>

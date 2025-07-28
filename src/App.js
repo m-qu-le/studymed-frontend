@@ -14,7 +14,7 @@ import QuizFormPage from './pages/QuizFormPage';
 import QuizTakingPage from './pages/QuizTakingPage';
 import QuizResultPage from './pages/QuizResultPage';
 import QuizReviewPage from './pages/QuizReviewPage';
-import BookmarkedQuestionsPage from './pages/BookmarkedQuestionsPage'; // MỚI: Import trang mới
+import BookmarkedQuestionsPage from './pages/BookmarkedQuestionsPage';
 
 import { AlertProvider } from './context/AlertContext';
 import { AuthProvider } from './context/AuthContext';
@@ -24,10 +24,14 @@ function App() {
     <Router>
       <AuthProvider>
         <AlertProvider>
-          <div className="App">
-            <Navbar />
-            <AlertMessage />
+          {/* Navbar được cố định */}
+          <Navbar />
+          {/* AlertMessage cũng cố định, không cần padding */}
+          <AlertMessage />
 
+          {/* MỚI: Thêm padding-top cho nội dung chính để không bị Navbar che */}
+          {/* Navbar cao khoảng 64px (h-16), pt-16 (64px) là hợp lý */}
+          <div className="pt-16"> {/* Padding top để nội dung không bị che */}
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -39,7 +43,7 @@ function App() {
               <Route path="/quiz/take/:id" element={<QuizTakingPage />} />
               <Route path="/quiz/result/:id" element={<QuizResultPage />} />
               <Route path="/quiz/review/:id" element={<QuizReviewPage />} />
-              <Route path="/bookmarks" element={<BookmarkedQuestionsPage />} /> {/* MỚI: Thêm route */}
+              <Route path="/bookmarks" element={<BookmarkedQuestionsPage />} />
             </Routes>
           </div>
         </AlertProvider>
