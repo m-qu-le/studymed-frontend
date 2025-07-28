@@ -12,11 +12,9 @@ function Navbar() {
   const [showNav, setShowNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // MỚI: Xác định xem có phải trang chủ không
   const isHomePage = location.pathname === '/';
 
   const controlNavbar = () => {
-    // Logic ẩn/hiện khi cuộn chỉ áp dụng cho trang dashboard
     if (location.pathname === '/dashboard') {
       if (window.scrollY > lastScrollY && window.scrollY > 100) {
         setShowNav(false);
@@ -24,7 +22,6 @@ function Navbar() {
         setShowNav(true);
       }
     } else {
-      // Trên các trang khác, luôn hiển thị navbar
       setShowNav(true);
     }
     setLastScrollY(window.scrollY);
@@ -41,8 +38,7 @@ function Navbar() {
   const handleLogout = () => {
     logout();
   };
-
-  // MỚI: Tùy chỉnh màu chữ dựa trên trang chủ
+  
   const linkColor = isHomePage ? "text-white hover:text-gray-300" : "text-white hover:text-blue-200";
 
   const guestLinks = (
@@ -70,19 +66,25 @@ function Navbar() {
     </>
   );
   
-  // MỚI: Tạo class động cho navbar
   const navBaseClasses = "fixed top-0 left-0 right-0 p-4 z-50 transition-all duration-300 ease-in-out";
   const navStyleClasses = isHomePage
-    ? "bg-transparent" // Trong suốt trên trang chủ
-    : "backdrop-blur-lg bg-black bg-opacity-30"; // Nền mờ trên các trang khác
+    ? "bg-transparent"
+    : "backdrop-blur-lg bg-black bg-opacity-30";
   const navVisibilityClass = showNav ? 'translate-y-0' : '-translate-y-full';
 
   return (
     <nav className={`${navBaseClasses} ${navStyleClasses} ${navVisibilityClass}`}>
       <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold text-white">
-          StudyMed
-        </Link>
+        {/* MỚI: Chỉ hiển thị logo nếu KHÔNG phải trang chủ */}
+        {!isHomePage && (
+            <Link to="/" className="text-2xl font-bold text-white">
+                StudyMed
+            </Link>
+        )}
+
+        {/* MỚI: Thêm một div trống để giữ các nút bên phải khi logo bị ẩn */}
+        {isHomePage && <div />}
+
         <div className="hidden md:flex items-center">
           {isAuthenticated ? authLinks : guestLinks}
         </div>

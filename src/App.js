@@ -1,6 +1,5 @@
 // src/App.js
 import React from 'react';
-// MỚI: Import thêm useLocation
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
@@ -20,21 +19,21 @@ import BookmarkedQuestionsPage from './pages/BookmarkedQuestionsPage';
 import { AlertProvider } from './context/AlertContext';
 import { AuthProvider } from './context/AuthContext';
 
-// MỚI: Tạo một component con để có thể sử dụng hook useLocation
 const AppContent = () => {
   const location = useLocation();
-  // Kiểm tra xem có đang ở trang làm bài không
   const isQuizTakingPage = location.pathname.startsWith('/quiz/take/');
+  
+  // MỚI: Chỉ áp dụng padding nếu không phải trang làm bài VÀ không phải trang chủ
+  const shouldApplyPadding = !isQuizTakingPage && location.pathname !== '/';
 
   return (
     <>
-      {/* Chỉ hiển thị Navbar nếu KHÔNG phải trang làm bài */}
       {!isQuizTakingPage && <Navbar />}
       
       <AlertMessage />
 
-      {/* Chỉ thêm padding top nếu Navbar được hiển thị */}
-      <div className={!isQuizTakingPage ? "pt-16" : ""}>
+      {/* MỚI: Áp dụng padding có điều kiện */}
+      <div className={shouldApplyPadding ? "pt-16" : ""}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -58,7 +57,6 @@ function App() {
     <Router>
       <AuthProvider>
         <AlertProvider>
-          {/* MỚI: Sử dụng AppContent để quản lý hiển thị Navbar */}
           <AppContent />
         </AlertProvider>
       </AuthProvider>
