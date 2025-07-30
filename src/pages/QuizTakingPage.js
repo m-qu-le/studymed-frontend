@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import BookmarkButton from '../components/BookmarkButton';
 import QuestionItem from '../components/QuestionItem'; // MỚI: Import component mới
+import ExplanationBlock from '../components/ExplanationBlock';
 
 // ... (Các hàm shuffleArray và formatTime giữ nguyên)
 const shuffleArray = (array) => {
@@ -313,19 +314,12 @@ const handleAnswerChange = (questionId, optionId, questionType) => {
                         </div>
                         
                         {quizMode === 'review' && showFeedback && (
-                        <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-md">
-                            <h4 className="font-bold mb-2">Giải thích chi tiết:</h4>
-                            {currentQuestion.options.map((opt, idx) => (
-                            <div key={opt._id} className="text-sm mb-1">
-                                <span className={`font-semibold ${opt.isCorrect ? 'text-green-700' : ''}`}>{String.fromCharCode(65 + idx)}. {opt.isCorrect && '(Đáp án đúng)'}</span>
-                                <span className="italic ml-2">{opt.feedback}</span>
-                            </div>
-                            ))}
-                            {currentQuestion.generalExplanation && (
-                            <p className="mt-2 text-sm font-medium">Giải thích chung: <span className="italic">{currentQuestion.generalExplanation}</span></p>
-                            )}
-                        </div>
-                        )}
+  <ExplanationBlock
+    question={currentQuestion}
+    userAnswers={userAnswers[currentQuestion._id]}
+    mode="review"
+  />
+)}
                     </div>
 
                     <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center mt-8 gap-3 w-full">
