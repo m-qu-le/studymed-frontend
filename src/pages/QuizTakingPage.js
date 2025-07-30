@@ -159,20 +159,31 @@ function QuizTakingPage() {
     }
   };
   
-  const handleAnswerChange = (questionId, optionId, questionType) => {
-    setUserAnswers((prevAnswers) => {
-      const currentAnswers = prevAnswers[questionId] || [];
-      let newAnswers;
-      if (questionType === 'multi-select') {
-        newAnswers = currentAnswers.includes(optionId)
-          ? currentAnswers.filter((id) => id !== optionId)
-          : [...currentAnswers, optionId];
+const handleAnswerChange = (questionId, optionId, questionType) => {
+  setShowFeedback(false); // Reset feedback khi chọn đáp án mới
+  setUserAnswers((prevAnswers) => {
+    const currentAnswers = prevAnswers[questionId] || [];
+    let newAnswers;
+
+    if (questionType === 'multi-select') {
+      if (currentAnswers.includes(optionId)) {
+        newAnswers = currentAnswers.filter((id) => id !== optionId);
       } else {
-        newAnswers = [optionId];
+        newAnswers = [...currentAnswers, optionId];
       }
-      return { ...prevAnswers, [questionId]: newAnswers };
-    });
-  };
+    } else {
+      // single-choice và true-false
+      newAnswers = [optionId];
+    }
+    return { ...prevAnswers, [questionId]: newAnswers };
+  });
+
+  // MỚI: Tự động hiển thị giải thích cho câu hỏi single-choice và true-false
+  // ngay sau khi người dùng chọn đáp án trong chế độ ôn tập.
+  if (quizMode === 'review' && questionType !== 'multi-select') {
+    setShowFeedback(true);
+  }
+};
 
   const handleNextQuestion = () => {
     setShowFeedback(false);
