@@ -53,12 +53,13 @@ function QuizResultPage() {
   };
 
   const handleReviewMistakes = () => {
-    if (id && id !== 'virtual' && location.state) {
-      navigate(`/quiz/review/${id}`, { state: location.state }); 
-    } else {
-      setAlert('Chỉ có thể xem lại đáp án của các bộ đề cố định.', 'info');
-    }
-  };
+  // Logic mới: Luôn cho phép xem lại miễn là có dữ liệu được truyền qua state
+  if (location.state) {
+    navigate(`/quiz/review/${id}`, { state: location.state }); 
+  } else {
+    setAlert('Không có dữ liệu để xem lại.', 'info');
+  }
+};
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-soft-gray p-4">
