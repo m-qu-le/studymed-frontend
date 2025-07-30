@@ -19,7 +19,7 @@ function StudyByTagPage() {
   const [customQuestionCount, setCustomQuestionCount] = useState(50);
   const [tagFilterMode, setTagFilterMode] = useState('any');
 
-  // MỚI: Định nghĩa map màu cho các mức độ khó
+  // MỚI: Định nghĩa map màu cho các mức độ khó để cải thiện UI
   const difficultyColorMap = {
     'Nhận biết': { normal: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200', selected: 'bg-green-500 text-white border-green-500' },
     'Thông hiểu': { normal: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200', selected: 'bg-blue-500 text-white border-blue-500' },
@@ -57,6 +57,12 @@ function StudyByTagPage() {
     e.preventDefault();
     const finalQuestionCount = questionCount === 'custom' ? customQuestionCount : parseInt(questionCount);
     
+    // GIỮ LẠI: Logic kiểm tra số lượng câu hỏi từ file gốc để đảm bảo an toàn
+    if (finalQuestionCount <= 0) {
+      setAlert('Vui lòng chọn số lượng câu hỏi lớn hơn 0.', 'error');
+      return;
+    }
+    
     try {
       const criteria = {
         tags: selectedTags,
@@ -67,7 +73,7 @@ function StudyByTagPage() {
       const res = await api.post('/api/study/session', criteria);
       navigate('/quiz/take/virtual', { state: { virtualQuiz: res.data } });
     } catch (err) {
-      setAlert(err.response?.data?.msg || 'Không thể tạo buổi ôn tập.', 'error');
+      setAlert(err.response?.data?.msg || 'Không thể tạo buổi ôn tập. Có thể không có câu hỏi nào phù hợp.', 'error');
     }
   };
 
@@ -75,6 +81,7 @@ function StudyByTagPage() {
     return <div className="flex items-center justify-center min-h-screen">Đang tải dữ liệu...</div>;
   }
 
+  // ĐÃ SỬA: Tái cấu trúc component SelectionChip để linh hoạt hơn bằng cách nhận prop `className`
   const SelectionChip = ({ value, isSelected, onToggle, className = '' }) => (
     <div
       onClick={onToggle}
@@ -90,25 +97,28 @@ function StudyByTagPage() {
         <h1 className="text-3xl font-bold text-primary-blue mb-6 border-b pb-4">Tùy chọn ôn tập</h1>
         
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* 1. Chọn Chủ đề */}
           <div>
             <h2 className="text-xl font-semibold text-gray-700 mb-3">1. Chọn Chủ đề</h2>
             {filters.tags.length > 0 ? (
               <div className="max-h-48 overflow-y-auto border p-3 rounded-lg bg-gray-50 flex flex-wrap gap-2">
                 {filters.tags.map(tag => (
-                   <SelectionChip
+                  <SelectionChip
                     key={tag}
                     value={tag}
                     isSelected={selectedTags.includes(tag)}
                     onToggle={() => handleToggleSelection(tag, selectedTags, setSelectedTags)}
-                    className={selectedTags.includes(tag) ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'}
+                    // ĐÃ SỬA: Cập nhật màu sắc cho chủ đề được chọn
+                    className={selectedTags.includes(tag) 
+                        ? 'bg-indigo-500 text-white border-indigo-500' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'}
                   />
                 ))}
               </div>
-            ) : <p className="text-gray-500">Chưa có chủ đề nào trong hệ thống.</p>}
+            ) : (
+              <p className="text-gray-500">Chưa có chủ đề nào trong hệ thống.</p>
+            )}
           </div>
 
-          {/* 2. Chọn Độ khó */}
           <div>
             <h2 className="text-xl font-semibold text-gray-700 mb-3">2. Chọn Độ khó</h2>
             <div className="flex flex-wrap gap-2">
@@ -118,18 +128,21 @@ function StudyByTagPage() {
                   value={difficulty}
                   isSelected={selectedDifficulties.includes(difficulty)}
                   onToggle={() => handleToggleSelection(difficulty, selectedDifficulties, setSelectedDifficulties)}
-                  className={selectedDifficulties.includes(difficulty) ? difficultyColorMap[difficulty]?.selected : difficultyColorMap[difficulty]?.normal}
+                  // ĐÃ SỬA: Áp dụng màu sắc động cho độ khó từ `difficultyColorMap`
+                  className={selectedDifficulties.includes(difficulty) 
+                    ? difficultyColorMap[difficulty]?.selected 
+                    : difficultyColorMap[difficulty]?.normal}
                 />
               ))}
             </div>
           </div>
 
-          {/* 3. Chế độ lọc */}
           <div>
             <h2 className="text-xl font-semibold text-gray-700 mb-3">3. Chế độ lọc</h2>
-            {/* ĐÃ SỬA: Responsive cho các lựa chọn */}
+            {/* ĐÃ SỬA: Cải thiện responsive cho các lựa chọn */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
               <label className="flex items-center cursor-pointer">
+                {/* ĐÃ SỬA: Thay đổi màu của radio button */}
                 <input type="radio" name="tagFilterMode" value="any" checked={tagFilterMode === 'any'} onChange={(e) => setTagFilterMode(e.target.value)} className="form-radio h-5 w-5 text-red-500 focus:ring-red-500" />
                 <span className="ml-2 text-gray-700">Chứa <strong>bất kỳ</strong> chủ đề đã chọn</span>
               </label>
@@ -140,7 +153,6 @@ function StudyByTagPage() {
             </div>
           </div>
           
-          {/* 4. Chọn Số lượng câu hỏi */}
           <div>
             <h2 className="text-xl font-semibold text-gray-700 mb-3">4. Chọn Số lượng câu hỏi</h2>
             <div className="flex items-center gap-4">
@@ -157,14 +169,24 @@ function StudyByTagPage() {
                 <option value="custom">Khác...</option>
               </select>
               {questionCount === 'custom' && (
-                <InputField type="number" value={customQuestionCount} onChange={(e) => setCustomQuestionCount(Math.max(1, parseInt(e.target.value)))} min="1" className="max-w-xs"/>
+                <InputField
+                  type="number"
+                  value={customQuestionCount}
+                  onChange={(e) => setCustomQuestionCount(Math.max(1, parseInt(e.target.value)))}
+                  min="1"
+                  className="max-w-xs"
+                />
               )}
             </div>
           </div>
 
           <div className="flex justify-end gap-4 border-t pt-6 mt-4">
-            <Button secondary onClick={() => navigate('/dashboard')}>Quay về</Button>
-            <Button primary type="submit">Bắt đầu</Button>
+            <Button secondary onClick={() => navigate('/dashboard')}>
+              Quay về
+            </Button>
+            <Button primary type="submit">
+              Bắt đầu
+            </Button>
           </div>
         </form>
       </div>
