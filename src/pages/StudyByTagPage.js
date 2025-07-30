@@ -13,19 +13,17 @@ function StudyByTagPage() {
   const [filters, setFilters] = useState({ tags: [], difficulties: [] });
   const [loading, setLoading] = useState(true);
   
-  // State cho các lựa chọn của người dùng
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedDifficulties, setSelectedDifficulties] = useState([]);
   const [questionCount, setQuestionCount] = useState('10');
   const [customQuestionCount, setCustomQuestionCount] = useState(50);
-  const [tagFilterMode, setTagFilterMode] = useState('any'); // 'any' hoặc 'all'
+  const [tagFilterMode, setTagFilterMode] = useState('any');
 
   const fetchFilters = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/api/study/filters');
       setFilters(res.data);
-      // Mặc định chọn tất cả độ khó khi vừa tải xong
       if (res.data.difficulties) {
         setSelectedDifficulties(res.data.difficulties);
       }
@@ -47,23 +45,36 @@ function StudyByTagPage() {
     );
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const finalQuestionCount = questionCount === 'custom' ? customQuestionCount : parseInt(questionCount);
     
-    console.log("Chuẩn bị bắt đầu buổi học với các lựa chọn:");
-    console.log("Chủ đề:", selectedTags);
-    console.log("Độ khó:", selectedDifficulties);
-    console.log("Chế độ lọc:", tagFilterMode);
-    console.log("Số lượng câu hỏi:", finalQuestionCount);
-    setAlert("Chức năng này sẽ được hoàn thiện ở bước sau!", "info");
+    if (finalQuestionCount <= 0) {
+      setAlert('Vui lòng chọn số lượng câu hỏi lớn hơn 0.', 'error');
+      return;
+    }
+    try {
+      const criteria = {
+        tags: selectedTags,
+        difficulties: selectedDifficulties,
+        numberOfQuestions: finalQuestionCount,
+        tagFilterMode,
+      };
+      // Gọi API để tạo session
+      const res = await api.post('/api/study/session', criteria);
+      
+      // Chuyển sang trang làm bài với dữ liệu "bộ đề ảo" trong state
+      navigate('/quiz/take/virtual', { state: { virtualQuiz: res.data } });
+
+    } catch (err) {
+      setAlert(err.response?.data?.msg || 'Không thể tạo buổi ôn tập. Có thể không có câu hỏi nào phù hợp.', 'error');
+    }
   };
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Đang tải dữ liệu...</div>;
   }
 
-  // Component Chip để tái sử dụng
   const SelectionChip = ({ value, isSelected, onToggle }) => (
     <div
       onClick={onToggle}
@@ -83,7 +94,6 @@ function StudyByTagPage() {
         <h1 className="text-3xl font-bold text-primary-blue mb-6 border-b pb-4">Tùy chọn ôn tập</h1>
         
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* 1. Chọn Chủ đề */}
           <div>
             <h2 className="text-xl font-semibold text-gray-700 mb-3">1. Chọn Chủ đề</h2>
             {filters.tags.length > 0 ? (
@@ -102,7 +112,6 @@ function StudyByTagPage() {
             )}
           </div>
 
-          {/* 2. Chọn Độ khó */}
           <div>
             <h2 className="text-xl font-semibold text-gray-700 mb-3">2. Chọn Độ khó</h2>
             <div className="flex flex-wrap gap-2">
@@ -117,7 +126,6 @@ function StudyByTagPage() {
             </div>
           </div>
 
-          {/* 3. Chế độ lọc */}
           <div>
             <h2 className="text-xl font-semibold text-gray-700 mb-3">3. Chế độ lọc</h2>
             <div className="flex items-center space-x-6">
@@ -132,7 +140,6 @@ function StudyByTagPage() {
             </div>
           </div>
           
-          {/* 4. Chọn Số lượng câu hỏi */}
           <div>
             <h2 className="text-xl font-semibold text-gray-700 mb-3">4. Chọn Số lượng câu hỏi</h2>
             <div className="flex items-center gap-4">

@@ -13,8 +13,7 @@ function QuizResultPage() {
   const [score, setScore] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
-  const [incorrectAnswersCount, setIncorrectAnswersCount] = useState(0);
-  const [timeTaken, setTimeTaken] = useState('');
+  const [timeTaken, setTimeTaken] = useState(0);
   const [quizTitle, setQuizTitle] = useState('');
 
   useEffect(() => {
@@ -29,26 +28,18 @@ function QuizResultPage() {
       quizData.questions.forEach(q => {
         const userAnswerIds = userAnswers[q._id] || [];
         const correctOptionIds = q.options.filter(opt => opt.isCorrect).map(opt => opt._id);
-        
-        const isCorrectAnswer = userAnswerIds.length === correctOptionIds.length &&
-                                userAnswerIds.every(id => correctOptionIds.includes(id)) &&
-                                userAnswerIds.length > 0;
-
+        const isCorrectAnswer = userAnswerIds.length === correctOptionIds.length && userAnswerIds.every(id => correctOptionIds.includes(id)) && userAnswerIds.length > 0;
         if (isCorrectAnswer) {
           correct++;
         }
       });
 
       setCorrectAnswersCount(correct);
-      setIncorrectAnswersCount(total - correct);
       setTotalQuestions(total);
-      
-      // ĐÃ SỬA: Thay đổi cách tính điểm sang thang 10
       const newScore = total > 0 ? ((correct / total) * 10).toFixed(1) : 0;
       setScore(newScore);
-
     } else {
-      setAlert('Không có dữ liệu kết quả bài làm. Vui lòng làm bài lại.', 'error');
+      setAlert('Không có dữ liệu kết quả bài làm.', 'error');
       navigate('/dashboard');
     }
   }, [location.state, navigate, setAlert]);
@@ -58,18 +49,14 @@ function QuizResultPage() {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    return [h, m, s]
-      .map(v => v < 10 ? "0" + v : v)
-      .join(":");
+    return [h, m, s].map(v => v < 10 ? "0" + v : v).join(":");
   };
 
   const handleReviewMistakes = () => {
-    // ĐÃ SỬA: Cho phép xem lại cả bài làm "ảo"
-    if (location.state) {
-      const quizId = id || 'virtual';
-      navigate(`/quiz/review/${quizId}`, { state: location.state }); 
+    if (id && id !== 'virtual' && location.state) {
+      navigate(`/quiz/review/${id}`, { state: location.state }); 
     } else {
-      setAlert('Không có dữ liệu để xem lại.', 'warning');
+      setAlert('Chỉ có thể xem lại đáp án của các bộ đề cố định.', 'info');
     }
   };
 
@@ -79,24 +66,24 @@ function QuizResultPage() {
         <h1 className="text-3xl font-bold text-primary-blue mb-2">Kết Quả Bài Làm</h1>
         <p className="text-gray-700 text-lg mb-6">Bộ đề: <span className="font-semibold">{quizTitle}</span></p>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Tổng số câu</p>
-            <p className="text-3xl font-bold text-blue-700">{totalQuestions}</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Số câu đúng</p>
-            <p className="text-3xl font-bold text-green-700">{correctAnswersCount}</p>
-          </div>
-          <div className="bg-red-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Số câu sai</p>
-            <p className="text-3xl font-bold text-red-700">{incorrectAnswersCount}</p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            {/* ĐÃ SỬA: Cập nhật hiển thị điểm */}
-            <p className="text-sm text-gray-600">Điểm (thang 10)</p>
-            <p className="text-3xl font-bold text-purple-700">{score}</p>
-          </div>
+        <div className="mb-6">
+            <p className="text-5xl font-bold text-purple-700">{score}</p>
+            <p className="text-sm text-gray-600">Điểm của bạn (thang 10)</p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 mb-6 text-center">
+            <div>
+                <p className="text-2xl font-bold text-blue-700">{totalQuestions}</p>
+                <p className="text-sm text-gray-600">Tổng số câu</p>
+            </div>
+            <div>
+                <p className="text-2xl font-bold text-green-700">{correctAnswersCount}</p>
+                <p className="text-sm text-gray-600">Số câu đúng</p>
+            </div>
+            <div>
+                <p className="text-2xl font-bold text-red-700">{totalQuestions - correctAnswersCount}</p>
+                <p className="text-sm text-gray-600">Số câu sai</p>
+            </div>
         </div>
 
         <p className="text-lg text-gray-700 mb-6">Thời gian hoàn thành: <span className="font-semibold">{formatTime(timeTaken)}</span></p>

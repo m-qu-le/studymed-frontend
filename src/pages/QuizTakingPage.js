@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import BookmarkButton from '../components/BookmarkButton';
 import ExplanationBlock from '../components/ExplanationBlock';
-import QuestionItem from '../components/QuestionItem'; // Component cho chế độ kiểm tra
+import QuestionItem from '../components/QuestionItem';
 
 const shuffleArray = (array) => {
   let currentIndex = array.length, randomIndex;
@@ -25,7 +25,8 @@ const formatTime = (seconds) => {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  return [h, m, s].map(v => v < 10 ? "0" + v : v).join(":");
+  const parts = [h, m, s].map(v => v < 10 ? "0" + v : v);
+  return h > 0 ? parts.join(":") : `${parts[1]}:${parts[2]}`;
 };
 
 function QuizTakingPage() {
@@ -56,17 +57,17 @@ function QuizTakingPage() {
     const startTime = localStorage.getItem('quizStartTime');
     const timeTaken = startTime ? Math.floor((Date.now() - parseInt(startTime, 10)) / 1000) : 0;
     const quizId = id || 'virtual';
-    // Đã loại bỏ shuffledOptionsOrder khỏi state điều hướng
-    navigate(`/quiz/result/${quizId}`, { state: { quizData: quiz, userAnswers, timeTaken } });
+    
+    navigate(`/quiz/result/${quizId}`, { 
+      state: { quizData: quiz, userAnswers, timeTaken, quizMode } 
+    });
     localStorage.removeItem('quizStartTime');
-  }, [id, navigate, quiz, userAnswers]);
-  
-  // Các hàm và useEffect khác được giữ nguyên và điều chỉnh
+  }, [id, navigate, quiz, userAnswers, quizMode]);
+
   const fetchBookmarks = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
       const res = await api.get('/api/users/bookmarks');
-      // Sử dụng Set cho bookmarkedQuestions
       setBookmarkedQuestions(new Set(res.data.map(q => q.question._id)));
     } catch (err) {
       if (err.response?.status === 401) logout();
@@ -79,7 +80,6 @@ function QuizTakingPage() {
     const setupQuiz = (quizData) => {
       let processedQuiz = { ...quizData };
       if (processedQuiz.questions) {
-        // Vẫn giữ logic xáo trộn các lựa chọn câu trả lời
         processedQuiz.questions.forEach(q => {
           if (q.questionType !== 'true-false') {
             q.options = shuffleArray([...q.options]);
@@ -90,7 +90,6 @@ function QuizTakingPage() {
         }
       }
       setQuiz(processedQuiz);
-      // Đã loại bỏ setShuffledOptionsOrder
       localStorage.setItem('quizStartTime', Date.now().toString());
       setLoadingQuiz(false);
     };
@@ -117,22 +116,18 @@ function QuizTakingPage() {
   }, [id, location.state, navigate, setAlert, shuffleQuestions]);
   
   useEffect(() => {
-    if (timeLeft === null || isTimerPaused || loadingQuiz) {
+    if (timeLeft === null || isTimerPaused || loadingQuiz || isTimeUp) {
       if(timerRef.current) clearInterval(timerRef.current);
       return;
     }
-  
-    if (timeLeft <= 0 && !isTimeUp) {
+    if (timeLeft <= 0) {
       setIsTimeUp(true);
       setAlert('Đã hết giờ làm bài!', 'warning');
-      if(timerRef.current) clearInterval(timerRef.current);
       return;
     }
-  
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => prev - 1);
     }, 1000);
-  
     return () => clearInterval(timerRef.current);
   }, [timeLeft, isTimerPaused, loadingQuiz, isTimeUp, setAlert]);
 
@@ -140,7 +135,6 @@ function QuizTakingPage() {
     if (!isAuthenticated) return;
     try {
         const res = await api.put(`/api/users/bookmark/${questionId}`);
-        // Cập nhật logic cho Set
         if (res.data.bookmarked) {
             setBookmarkedQuestions(prev => new Set(prev).add(questionId));
         } else {
@@ -156,18 +150,15 @@ function QuizTakingPage() {
   };
 
   const handleAnswerChange = (questionId, optionId, questionType) => {
-    // logic được giữ nguyên từ file gốc
     setShowFeedback(false);
     setUserAnswers((prevAnswers) => {
       const currentAnswers = prevAnswers[questionId] || [];
       let newAnswers;
 
       if (questionType === 'multi-select') {
-        if (currentAnswers.includes(optionId)) {
-          newAnswers = currentAnswers.filter((id) => id !== optionId);
-        } else {
-          newAnswers = [...currentAnswers, optionId];
-        }
+        newAnswers = currentAnswers.includes(optionId) 
+          ? currentAnswers.filter((id) => id !== optionId) 
+          : [...currentAnswers, optionId];
       } else {
         newAnswers = [optionId];
       }
@@ -193,10 +184,7 @@ function QuizTakingPage() {
     }
   };
 
-  if (loadingQuiz) {
-    return <div className="flex items-center justify-center min-h-screen">Đang tải bộ đề...</div>;
-  }
-  
+  if (loadingQuiz) return <div className="flex items-center justify-center min-h-screen">Đang tải bộ đề...</div>;
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return <div className="flex items-center justify-center min-h-screen">Lỗi tải bộ đề hoặc bộ đề không có câu hỏi.</div>;
   }
@@ -205,7 +193,6 @@ function QuizTakingPage() {
 
   return (
     <div className="min-h-screen bg-soft-gray p-4 flex flex-col items-center">
-      {/* Giữ lại modal hết giờ từ file gốc */}
       {isTimeUp && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-sm mx-4">
@@ -223,11 +210,10 @@ function QuizTakingPage() {
         </div>
       )}
 
-      <div className="container mx-auto p-4 md:p-8 bg-white rounded-xl shadow-lg max-w-4xl">
+      <div className="container mx-auto p-4 md:p-8 bg-white rounded-xl shadow-lg max-w-4xl w-full">
         <h1 className="text-2xl md:text-3xl font-bold text-primary-blue mb-4 text-center">{quiz.title}</h1>
         
-        <div className="sticky top-0 bg-white/80 backdrop-blur-sm py-4 z-10 border-b mb-6">
-          {/* ĐÃ SỬA: Thêm lại bộ đếm câu hỏi */}
+        <div className="sticky top-0 bg-white/90 backdrop-blur-sm py-4 z-10 border-b mb-6">
           <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg shadow-sm text-sm md:text-base">
             <div className={`font-semibold ${isTimeUp && !isTimerPaused ? 'text-red-500 animate-pulse' : 'text-blue-800'}`}>
               Thời gian: <span className="font-bold">{formatTime(timeLeft)}</span>
@@ -236,7 +222,7 @@ function QuizTakingPage() {
               Chế độ: {quizMode === 'review' ? 'Ôn tập' : 'Kiểm tra'}
             </div>
             <div className="font-semibold text-blue-800">
-              Câu hỏi: <span className="font-bold">{quizMode === 'review' ? currentQuestionIndex + 1 : Object.keys(userAnswers).length} / {quiz.questions.length}</span>
+              Câu hỏi: <span className="font-bold">{quizMode === 'review' ? currentQuestionIndex + 1 : Object.values(userAnswers).filter(a => a.length > 0).length} / {quiz.questions.length}</span>
             </div>
           </div>
         </div>
@@ -245,29 +231,22 @@ function QuizTakingPage() {
           <div>
             {quiz.questions.map((question, index) => (
               <QuestionItem
-                key={question._id}
+                key={question._id || index}
                 question={question}
                 index={index}
                 userAnswer={userAnswers[question._id]}
                 onAnswerChange={handleAnswerChange}
-                // Bookmark được quản lý ở cấp cao hơn trong chế độ này nếu cần
-                // Các props isBookmarked, onToggleBookmark đã được loại bỏ theo yêu cầu
                 isAuthenticated={isAuthenticated}
               />
             ))}
-            <div className="flex justify-between items-center mt-8">
-               <Button secondary onClick={() => navigate('/dashboard')}>
-                 Thoát
-               </Button>
-               <Button primary onClick={handleSubmitQuiz} className="py-3 px-6 text-lg">
-                 Nộp bài
-               </Button>
+            <div className="flex justify-end mt-8">
+              <Button secondary onClick={() => navigate('/dashboard')} className="mr-4">Thoát</Button>
+              <Button primary onClick={handleSubmitQuiz} className="py-3 px-6 text-lg">Nộp bài</Button>
             </div>
           </div>
         ) : (
           <div>
             <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 mb-6">
-              {/* Nội dung câu hỏi và các lựa chọn trong chế độ ôn tập (lấy từ file gốc) */}
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-semibold text-gray-800 flex-1 pr-4">
                   Câu {currentQuestionIndex + 1}: {currentQuestion.questionText}
@@ -275,7 +254,7 @@ function QuizTakingPage() {
                 {isAuthenticated && (
                   <BookmarkButton
                     questionId={currentQuestion._id}
-                    isBookmarked={bookmarkedQuestions.has(currentQuestion._id)} // Sử dụng .has() cho Set
+                    isBookmarked={bookmarkedQuestions.has(currentQuestion._id)}
                     onClick={() => handleToggleBookmark(currentQuestion._id)}
                     className="flex-shrink-0"
                   />
@@ -284,7 +263,6 @@ function QuizTakingPage() {
               <div className="space-y-4">
                 {currentQuestion.options.map((option, idx) => {
                   const isSelected = userAnswers[currentQuestion._id]?.includes(option._id) || false;
-                  // Loại bỏ kiểm tra quizMode thừa thãi trong className
                   const feedbackClass = showFeedback 
                     ? (option.isCorrect ? 'bg-green-100 border-green-400' : (isSelected ? 'bg-red-100 border-red-400' : 'border-gray-300 hover:bg-gray-50'))
                     : 'border-gray-300 hover:bg-gray-50';
@@ -297,7 +275,7 @@ function QuizTakingPage() {
                         checked={isSelected}
                         onChange={() => handleAnswerChange(currentQuestion._id, option._id, currentQuestion.questionType)}
                         className={`mt-1 h-5 w-5 ${currentQuestion.questionType === 'multi-select' ? 'form-checkbox text-primary-blue rounded' : 'form-radio text-primary-blue'}`}
-                        disabled={showFeedback} // Vô hiệu hóa khi đã hiển thị feedback
+                        disabled={showFeedback}
                       />
                       <span className="ml-3 text-gray-800 text-base flex-1">
                         <span className="font-semibold mr-2">{String.fromCharCode(65 + idx)}.</span>
@@ -318,7 +296,6 @@ function QuizTakingPage() {
             )}
 
             <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center mt-8 gap-3 w-full">
-              {/* Các nút điều hướng trong chế độ ôn tập (lấy từ file gốc) */}
               <Button secondary onClick={() => navigate('/dashboard')}>
                 Thoát
               </Button>
@@ -327,10 +304,9 @@ function QuizTakingPage() {
                   Câu trước
                 </Button>
                 
-                {/* Logic nút "Xong", "Câu tiếp theo", "Nộp bài" được giữ nguyên */}
                 {currentQuestion.questionType === 'multi-select' && !showFeedback && (userAnswers[currentQuestion._id]?.length > 0) ? (
                     <Button primary onClick={() => setShowFeedback(true)}>
-                      Kiểm tra
+                      Xong
                     </Button>
                 ) : currentQuestionIndex < quiz.questions.length - 1 ? (
                     <Button primary onClick={handleNextQuestion}>
@@ -338,7 +314,7 @@ function QuizTakingPage() {
                     </Button>
                 ) : (
                     <Button primary onClick={handleSubmitQuiz}>
-                      Hoàn thành
+                      Nộp bài
                     </Button>
                 )}
               </div>
