@@ -40,7 +40,7 @@ function ExplanationBlock({ question, userAnswers = [], mode = 'review' }) {
           if (!shouldShow) return null;
 
           return (
-            <div key={option._id} className="flex items-start text-sm">
+            <div key={option._id} className="flex items-start text-base">
               {/* Icon Trực quan */}
               <div className="w-5 mt-0.5">
                 {option.isCorrect && <FiCheckCircle className="text-green-500" />}
@@ -62,9 +62,9 @@ function ExplanationBlock({ question, userAnswers = [], mode = 'review' }) {
 
       {/* Giải thích chung */}
       {question.generalExplanation && (
-        <div className="mt-4 pt-3 border-t border-gray-200">
-          <h5 className="font-semibold text-gray-800 text-sm">Giải thích chung:</h5>
-          <p className="text-sm text-gray-700 mt-1">{question.generalExplanation}</p>
+        <div className="mt-4 pt-3 border-t border-gray-200 text-base">
+         <h5 className="font-semibold text-gray-800">Giải thích chung:</h5>
+        <p className="text-gray-700 mt-1">{question.generalExplanation}</p>
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import BookmarkButton from '../components/BookmarkButton';
+import ExplanationBlock from '../components/ExplanationBlock';
 
 function QuizReviewPage() {
   const { id } = useParams();
@@ -173,25 +174,11 @@ function QuizReviewPage() {
                 </div>
 
                 {/* Hiển thị tất cả feedback và giải thích chung */}
-                <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-md">
-                  <h4 className="font-bold mb-2">Giải thích chi tiết:</h4>
-                  {question.options.map((option, idx) => {
-                    const optionLetter = String.fromCharCode(65 + idx);
-                    return (
-                      <div key={option._id} className="mb-2">
-                        <p className="text-sm font-medium">
-                          <span className={option.isCorrect ? 'text-green-700' : 'text-gray-700'}>
-                            {optionLetter}. {option.isCorrect ? '(Đáp án đúng)' : ''}
-                          </span>
-                          <span className="italic ml-2">{option.feedback || 'Không có giải thích.'}</span>
-                        </p>
-                      </div>
-                    );
-                  })}
-                  {question.generalExplanation && (
-                    <p className="mt-2 text-sm font-medium">Giải thích chung: <span className="italic">{question.generalExplanation}</span></p>
-                  )}
-                </div>
+                <ExplanationBlock
+  question={question}
+  userAnswers={userAnswers[question._id]}
+  mode="reviewPage" 
+/>
               </div>
             );
           })}
