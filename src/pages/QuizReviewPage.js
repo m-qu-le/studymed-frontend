@@ -1,7 +1,7 @@
 // src/pages/QuizReviewPage.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import api from '../services/api'; // MỚI: Import api từ '../services/api'
+import api from '../services/api';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
@@ -11,93 +11,58 @@ function QuizReviewPage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading, logout } = useAuth();
+  const { isAuthenticated, loading: authLoading, user, logout } = useAuth(); // Đã thêm logout
   const { setAlert } = useAlert();
 
   const [quiz, setQuiz] = useState(null);
-  const [loadingQuiz, setLoadingQuiz] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [userAnswers, setUserAnswers] = useState({});
-  const [shuffledOptionsOrder, setShuffledOptionsOrder] = useState({});
-
-  const [bookmarkedQuestions, setBookmarkedQuestions] = useState([]);
-
-
-  const getToken = useCallback(() => localStorage.getItem('token'), []);
+  const [bookmarkedQuestions, setBookmarkedQuestions] = useState(new Set());
 
   const fetchBookmarks = useCallback(async () => {
-      if (!isAuthenticated) return;
-      try {
-          // MỚI: Sử dụng api.get
-          const res = await api.get('/api/users/bookmarks');
-          setBookmarkedQuestions(res.data.map(q => q.question._id));
-      } catch (err) {
-          console.error('Lỗi khi tải bookmarks:', err);
-          if (err.response?.status === 401) {
-              logout();
-          }
-      }
-  }, [isAuthenticated, getToken, logout]);
+    if (!isAuthenticated) return;
+    try {
+      const res = await api.get('/api/users/bookmarks');
+      setBookmarkedQuestions(new Set(res.data.map(q => q.question._id)));
+    } catch (err) {
+      console.error('Lỗi khi tải bookmarks:', err);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
-      fetchBookmarks();
+    fetchBookmarks();
   }, [fetchBookmarks]);
 
-
+  // ĐÃ SỬA: Nâng cấp logic tải dữ liệu
   useEffect(() => {
-    if (!id) {
-      setAlert('Không tìm thấy ID bộ đề để xem lại.', 'error');
-      navigate('/dashboard');
-      return;
-    }
+    const setupQuiz = (quizData) => {
+      setQuiz(quizData);
+      setLoading(false);
+    };
 
-    if (location.state && location.state.userAnswers) {
-      setUserAnswers(location.state.userAnswers);
-    } else {
-      setAlert('Không có dữ liệu câu trả lời để xem lại.', 'warning');
-    }
-
-    if (location.state && location.state.shuffledOptionsOrder) {
-        setShuffledOptionsOrder(location.state.shuffledOptionsOrder);
-    }
-
-    const fetchQuiz = async () => {
+    const fetchQuizById = async () => {
       try {
-        setLoadingQuiz(true);
-        setError(null);
-        // MỚI: Sử dụng api.get
         const res = await api.get(`/api/quizzes/${id}`);
-
-        let fetchedQuiz = res.data;
-        if (fetchedQuiz.questions && Object.keys(shuffledOptionsOrder).length > 0) {
-            fetchedQuiz.questions = fetchedQuiz.questions.map(q => {
-                if (shuffledOptionsOrder[q._id]) {
-                    const originalOptions = [...q.options];
-                    q.options = shuffledOptionsOrder[q._id].map(optId => originalOptions.find(o => o._id === optId));
-                }
-                return q;
-            });
-        }
-        setQuiz(fetchedQuiz);
+        setupQuiz(res.data);
       } catch (err) {
-        console.error('Lỗi khi tải bộ đề để xem lại:', err);
-        if (err.response && err.response.status === 404) {
-          setError('Bộ đề không tìm thấy hoặc bạn không có quyền truy cập.');
-          setAlert('Bộ đề không tìm thấy hoặc bạn không có quyền truy cập.', 'error');
-        } else if (err.response && err.response.status === 403) {
-          setError('Bạn không có quyền truy cập bộ đề này.');
-          setAlert('Bạn không có quyền truy cập bộ đề này.', 'error');
-        } else {
-          setError('Lỗi khi tải bộ đề. Vui lòng thử lại.');
-          setAlert('Lỗi khi tải bộ đề. Vui lòng thử lại.', 'error');
-        }
+        setAlert('Không thể tải bộ đề để xem lại.', 'error');
         navigate('/dashboard');
-      } finally {
-        setLoadingQuiz(false);
       }
     };
-    fetchQuiz();
-  }, [id, navigate, setAlert, getToken, location.state, shuffledOptionsOrder]);
+
+    if (location.state?.quizData) {
+      if (location.state.userAnswers) {
+        setUserAnswers(location.state.userAnswers);
+      }
+      setupQuiz(location.state.quizData);
+    } else if (id && id !== 'virtual') {
+      fetchQuizById();
+    } else {
+      setAlert('Không có dữ liệu để xem lại.', 'error');
+      navigate('/dashboard');
+    }
+  }, [id, location.state, navigate, setAlert]);
+
 
   const handleToggleBookmark = async (questionId) => {
       if (!isAuthenticated) {
@@ -105,15 +70,18 @@ function QuizReviewPage() {
           return;
       }
       try {
-          // MỚI: Sử dụng api.put
           const res = await api.put(`/api/users/bookmark/${questionId}`, {});
 
           if (res.data.bookmarked) {
               setAlert('Đã thêm câu hỏi vào bookmark.', 'success');
-              setBookmarkedQuestions(prev => [...prev, questionId]);
+              setBookmarkedQuestions(prev => new Set(prev).add(questionId));
           } else {
               setAlert('Đã xóa câu hỏi khỏi bookmark.', 'info');
-              setBookmarkedQuestions(prev => prev.filter(id => id !== questionId));
+              setBookmarkedQuestions(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(questionId);
+                  return newSet;
+              });
           }
       } catch (err) {
           console.error('Lỗi khi cập nhật bookmark:', err);
@@ -123,32 +91,13 @@ function QuizReviewPage() {
           }
       }
   };
-
-
-  if (authLoading || loadingQuiz) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-        <p className="text-xl text-gray-700">Đang tải bộ đề để xem lại...</p>
-      </div>
-    );
+  
+  if (authLoading || loading) {
+    return <div className="flex justify-center items-center min-h-screen">Đang tải...</div>;
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-        <p className="text-xl text-red-600 mb-4">{error}</p>
-        <Button primary onClick={() => navigate('/dashboard')}>Quay lại Dashboard</Button>
-      </div>
-    );
-  }
-
-  if (!quiz || !quiz.questions || quiz.questions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] bg-soft-gray p-4">
-        <p className="text-xl text-gray-700">Bộ đề này không có câu hỏi nào hoặc không tìm thấy bộ đề để xem lại.</p>
-        <Button primary className="mt-4" onClick={() => navigate('/dashboard')}>Quay lại Dashboard</Button>
-      </div>
-    );
+  if (!quiz) {
+    return <div className="flex justify-center items-center min-h-screen">Không tìm thấy dữ liệu bộ đề.</div>;
   }
 
   return (
@@ -173,7 +122,7 @@ function QuizReviewPage() {
                   {isAuthenticated && (
                     <BookmarkButton
                       questionId={question._id}
-                      isBookmarked={bookmarkedQuestions.includes(question._id)}
+                      isBookmarked={bookmarkedQuestions.has(question._id)} // Đã sửa: dùng .has() cho Set
                       onClick={handleToggleBookmark}
                       className="ml-4"
                     />
