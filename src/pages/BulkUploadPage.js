@@ -6,24 +6,48 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 
-// MỚI: Cập nhật lại hướng dẫn để bao gồm "tags" và "difficulty"
+// MỚI: Cập nhật lại hướng dẫn để bao gồm cả "single" và "group" type
 const jsonFormatGuide = `[
   {
-    "title": "Tên bộ đề mẫu",
-    "description": "Mô tả ngắn gọn cho bộ đề.",
-    "subject": "Môn học (ví dụ: Sinh học)",
-    "topic": "Chủ đề (ví dụ: Tế bào)",
+    "title": "Tên bộ đề",
+    "description": "Mô tả bộ đề",
+    "subject": "Môn học",
+    "topic": "Chủ đề",
     "questions": [
       {
-        "questionText": "Nội dung câu hỏi ở đây?",
-        "questionType": "single-choice",
-        "generalExplanation": "Giải thích chung cho câu hỏi.",
-        "tags": ["tim mạch", "điện tâm đồ"],
-        "difficulty": "Vận dụng",
+        "type": "single",
+        "questionText": "Nội dung câu hỏi đơn...",
+        "tags": ["tag1", "tag2"],
+        "difficulty": "Thông hiểu",
         "options": [
-          { "text": "Lựa chọn A (Sai)", "isCorrect": false, "feedback": "Giải thích tại sao A sai." },
-          { "text": "Lựa chọn B (Đúng)", "isCorrect": true, "feedback": "Giải thích tại sao B đúng." },
-          { "text": "Lựa chọn C (Sai)", "isCorrect": false, "feedback": "Giải thích tại sao C sai." }
+          { "text": "Lựa chọn A", "isCorrect": true, "feedback": "Giải thích A" },
+          { "text": "Lựa chọn B", "isCorrect": false, "feedback": "Giải thích B" }
+        ]
+      },
+      {
+        "type": "group",
+        "caseStem": "Nội dung case lâm sàng chung...",
+        "childQuestions": [
+          {
+            "questionText": "Nội dung câu hỏi con 1...",
+            "questionType": "single-choice",
+            "tags": ["tag3"],
+            "difficulty": "Vận dụng",
+            "options": [
+              { "text": "Lựa chọn 1", "isCorrect": true, "feedback": "..." },
+              { "text": "Lựa chọn 2", "isCorrect": false, "feedback": "..." }
+            ]
+          },
+          {
+            "questionText": "Nội dung câu hỏi con 2...",
+            "questionType": "multi-select",
+            "tags": ["tag4"],
+            "difficulty": "Vận dụng cao",
+            "options": [
+              { "text": "Lựa chọn X", "isCorrect": true, "feedback": "..." },
+              { "text": "Lựa chọn Y", "isCorrect": true, "feedback": "..." }
+            ]
+          }
         ]
       }
     ]
