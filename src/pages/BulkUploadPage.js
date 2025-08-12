@@ -6,46 +6,76 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 
-// MỚI: Cập nhật lại hướng dẫn để bao gồm cả "single" và "group" type
+// ĐÃ SỬA: Hướng dẫn định dạng JSON chi tiết và đầy đủ hơn
 const jsonFormatGuide = `[
   {
-    "title": "Tên bộ đề",
-    "description": "Mô tả bộ đề",
-    "subject": "Môn học",
-    "topic": "Chủ đề",
+    "title": "Bộ đề Hướng dẫn Chi tiết",
+    "description": "Mô tả: Bộ đề này minh họa tất cả các cấu trúc và trường dữ liệu hợp lệ.",
+    "subject": "Môn học (Bắt buộc)",
+    "topic": "Chủ đề (Tùy chọn)",
     "questions": [
       {
         "type": "single",
-        "questionText": "Nội dung câu hỏi đơn...",
-        "tags": ["tag1", "tag2"],
+        "questionText": "Đây là câu hỏi ĐƠN loại MỘT ĐÁP ÁN (single-choice). Tất cả các trường tùy chọn đều được điền.",
+        "questionType": "single-choice",
+        "generalExplanation": "Đây là giải thích chung cho toàn bộ câu hỏi, sẽ hiện ra sau khi người dùng trả lời.",
+        "tags": ["minh-hoa", "cau-hoi-don", "day-du-truong"],
         "difficulty": "Thông hiểu",
         "options": [
-          { "text": "Lựa chọn A", "isCorrect": true, "feedback": "Giải thích A" },
-          { "text": "Lựa chọn B", "isCorrect": false, "feedback": "Giải thích B" }
+          { "text": "Lựa chọn 1 (Sai)", "isCorrect": false, "feedback": "Giải thích chi tiết tại sao lựa chọn này sai." },
+          { "text": "Lựa chọn 2 (Đúng)", "isCorrect": true, "feedback": "Giải thích chi tiết tại sao đây là đáp án đúng." },
+          { "text": "Lựa chọn 3 (Sai)", "isCorrect": false, "feedback": "Giải thích chi tiết tại sao lựa chọn này cũng sai." }
+        ]
+      },
+      {
+        "type": "single",
+        "questionText": "Đây là câu hỏi ĐƠN loại NHIỀU ĐÁP ÁN (multi-select). Có thể có nhiều 'isCorrect: true'.",
+        "questionType": "multi-select",
+        "tags": ["multi-select"],
+        "difficulty": "Vận dụng",
+        "options": [
+          { "text": "Lựa chọn A (Đáp án đúng 1/2)", "isCorrect": true },
+          { "text": "Lựa chọn B (Sai)", "isCorrect": false },
+          { "text": "Lựa chọn C (Đáp án đúng 2/2)", "isCorrect": true },
+          { "text": "Lựa chọn D (Sai)", "isCorrect": false }
+        ]
+      },
+      {
+        "type": "single",
+        "questionText": "Đây là câu hỏi ĐƠN loại ĐÚNG/SAI (true-false). Các lựa chọn là cố định.",
+        "questionType": "true-false",
+        "difficulty": "Nhận biết",
+        "options": [
+          { "text": "Đúng", "isCorrect": true },
+          { "text": "Sai", "isCorrect": false }
         ]
       },
       {
         "type": "group",
-        "caseStem": "Nội dung case lâm sàng chung...",
+        "caseStem": "Đây là phần mô tả tình huống lâm sàng chung (case stem). Nội dung này sẽ được hiển thị cùng với tất cả các câu hỏi con bên dưới.",
+        "tags": ["case-study", "lam-sang"],
+        "difficulty": "Vận dụng cao",
         "childQuestions": [
           {
-            "questionText": "Nội dung câu hỏi con 1...",
+            "questionText": "Dựa vào case study trên, đây là câu hỏi con số 1 (loại một đáp án).",
             "questionType": "single-choice",
-            "tags": ["tag3"],
+            "tags": ["chan-doan"],
             "difficulty": "Vận dụng",
+            "generalExplanation": "Giải thích chung cho câu hỏi con này.",
             "options": [
-              { "text": "Lựa chọn 1", "isCorrect": true, "feedback": "..." },
-              { "text": "Lựa chọn 2", "isCorrect": false, "feedback": "..." }
+              { "text": "Lựa chọn cho câu hỏi con 1 (Đúng)", "isCorrect": true, "feedback": "Feedback cho lựa chọn này." },
+              { "text": "Lựa chọn cho câu hỏi con 1 (Sai)", "isCorrect": false }
             ]
           },
           {
-            "questionText": "Nội dung câu hỏi con 2...",
+            "questionText": "Dựa vào case study trên, đây là câu hỏi con số 2 (loại nhiều đáp án).",
             "questionType": "multi-select",
-            "tags": ["tag4"],
+            "tags": ["dieu-tri"],
             "difficulty": "Vận dụng cao",
             "options": [
-              { "text": "Lựa chọn X", "isCorrect": true, "feedback": "..." },
-              { "text": "Lựa chọn Y", "isCorrect": true, "feedback": "..." }
+              { "text": "Lựa chọn cho câu hỏi con 2 (Đúng)", "isCorrect": true },
+              { "text": "Lựa chọn cho câu hỏi con 2 (Cũng đúng)", "isCorrect": true },
+              { "text": "Lựa chọn cho câu hỏi con 2 (Sai)", "isCorrect": false }
             ]
           }
         ]
