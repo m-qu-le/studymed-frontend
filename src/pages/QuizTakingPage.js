@@ -9,16 +9,6 @@ import BookmarkButton from '../components/BookmarkButton';
 import ExplanationBlock from '../components/ExplanationBlock';
 import QuestionItem from '../components/QuestionItem';
 
-const shuffleArray = (array) => {
-  let currentIndex = array.length, randomIndex;
-  while (currentIndex !== 0) {
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-  }
-  return array;
-};
-
 const formatTime = (seconds) => {
   if (seconds === null) return 'Không giới hạn';
   if (seconds < 0) seconds = 0;
@@ -38,10 +28,10 @@ function QuizTakingPage() {
   const [searchParams] = useSearchParams();
 
   const quizMode = searchParams.get('mode') || 'review';
-  const shuffleQuestions = searchParams.get('shuffle') === 'true';
   const timeLimit = searchParams.get('timeLimit') ? parseInt(searchParams.get('timeLimit'), 10) : null;
 
-  const [quiz, setQuiz] = useState(null);
+  const [originalQuiz, setOriginalQuiz] = useState(null);
+  const [displayQuestions, setDisplayQuestions] = useState([]);
   const [loadingQuiz, setLoadingQuiz] = useState(true);
   const [userAnswers, setUserAnswers] = useState({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -59,10 +49,10 @@ function QuizTakingPage() {
     const quizId = id || 'virtual';
     
     navigate(`/quiz/result/${quizId}`, { 
-      state: { quizData: quiz, userAnswers, timeTaken, quizMode } 
+      state: { quizData: originalQuiz, userAnswers, timeTaken, quizMode } 
     });
     localStorage.removeItem('quizStartTime');
-  }, [id, navigate, quiz, userAnswers, quizMode]);
+  }, [id, navigate, originalQuiz, userAnswers, quizMode]);
 
   const fetchBookmarks = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -78,18 +68,25 @@ function QuizTakingPage() {
 
   useEffect(() => {
     const setupQuiz = (quizData) => {
-      let processedQuiz = { ...quizData };
-      if (processedQuiz.questions) {
-        processedQuiz.questions.forEach(q => {
-          if (q.questionType !== 'true-false') {
-            q.options = shuffleArray([...q.options]);
+      setOriginalQuiz(quizData);
+      
+      const flatQuestions = [];
+      if (quizData && quizData.questions) {
+        quizData.questions.forEach(item => {
+          if (item.type === 'single') {
+            flatQuestions.push(item);
+          } else if (item.type === 'group' && item.childQuestions) {
+            item.childQuestions.forEach(child => {
+              flatQuestions.push({
+                ...child,
+                caseStem: item.caseStem 
+              });
+            });
           }
         });
-        if (shuffleQuestions) {
-          processedQuiz.questions = shuffleArray([...processedQuiz.questions]);
-        }
       }
-      setQuiz(processedQuiz);
+
+      setDisplayQuestions(flatQuestions);
       localStorage.setItem('quizStartTime', Date.now().toString());
       setLoadingQuiz(false);
     };
@@ -113,7 +110,7 @@ function QuizTakingPage() {
       setAlert('Không có dữ liệu bộ đề.', 'error');
       navigate('/dashboard');
     }
-  }, [id, location.state, navigate, setAlert, shuffleQuestions]);
+  }, [id, location.state, navigate, setAlert]);
   
   useEffect(() => {
     if (timeLeft === null || isTimerPaused || loadingQuiz || isTimeUp) {
@@ -172,7 +169,7 @@ function QuizTakingPage() {
 
   const handleNextQuestion = () => {
     setShowFeedback(false);
-    if (currentQuestionIndex < quiz.questions.length - 1) {
+    if (currentQuestionIndex < displayQuestions.length - 1) {
       setCurrentQuestionIndex(prevIndex => prevIndex + 1);
     }
   };
@@ -185,11 +182,12 @@ function QuizTakingPage() {
   };
 
   if (loadingQuiz) return <div className="flex items-center justify-center min-h-screen">Đang tải bộ đề...</div>;
-  if (!quiz || !quiz.questions || quiz.questions.length === 0) {
+  if (!originalQuiz || displayQuestions.length === 0) {
     return <div className="flex items-center justify-center min-h-screen">Lỗi tải bộ đề hoặc bộ đề không có câu hỏi.</div>;
   }
 
-  const currentQuestion = quiz.questions[currentQuestionIndex];
+  const currentQuestion = displayQuestions[currentQuestionIndex];
+  const prevQuestion = displayQuestions[currentQuestionIndex - 1];
 
   return (
     <div className="min-h-screen bg-soft-gray p-4 flex flex-col items-center">
@@ -211,7 +209,7 @@ function QuizTakingPage() {
       )}
 
       <div className="container mx-auto p-4 md:p-8 bg-white rounded-xl shadow-lg max-w-4xl w-full">
-        <h1 className="text-2xl md:text-3xl font-bold text-primary-blue mb-4 text-center">{quiz.title}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-primary-blue mb-4 text-center">{originalQuiz.title}</h1>
         
         <div className="sticky top-0 bg-white/90 backdrop-blur-sm py-4 z-10 border-b mb-6">
           <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg shadow-sm text-sm md:text-base">
@@ -222,30 +220,74 @@ function QuizTakingPage() {
               Chế độ: {quizMode === 'review' ? 'Ôn tập' : 'Kiểm tra'}
             </div>
             <div className="font-semibold text-blue-800">
-              Câu hỏi: <span className="font-bold">{quizMode === 'review' ? currentQuestionIndex + 1 : Object.values(userAnswers).filter(a => a.length > 0).length} / {quiz.questions.length}</span>
+              Câu hỏi: <span className="font-bold">{quizMode === 'review' ? currentQuestionIndex + 1 : Object.values(userAnswers).filter(a => a.length > 0).length} / {displayQuestions.length}</span>
             </div>
           </div>
         </div>
 
         {quizMode === 'test' ? (
+          // ĐÃ SỬA: Logic hiển thị cho test mode, lặp qua bộ đề gốc để giữ cấu trúc nhóm
           <div>
-            {quiz.questions.map((question, index) => (
-              <QuestionItem
-                key={question._id || index}
-                question={question}
-                index={index}
-                userAnswer={userAnswers[question._id]}
-                onAnswerChange={handleAnswerChange}
-                isAuthenticated={isAuthenticated}
-              />
-            ))}
+            {originalQuiz.questions.map((item, index) => {
+              // Nếu là câu hỏi đơn, hiển thị QuestionItem
+              if (item.type === 'single') {
+                return (
+                  <div key={item._id || index} className="mb-8">
+                    <QuestionItem
+                      question={item}
+                      index={index}
+                      userAnswer={userAnswers[item._id]}
+                      onAnswerChange={handleAnswerChange}
+                      isAuthenticated={isAuthenticated}
+                    />
+                  </div>
+                );
+              }
+              
+              // Nếu là nhóm câu hỏi (case study)
+              if (item.type === 'group') {
+                return (
+                  <div key={item._id || index} className="mb-8 p-4 border-l-4 border-indigo-500 bg-indigo-50 rounded-lg">
+                    {/* Hiển thị tình huống lâm sàng */}
+                    <div className="mb-6">
+                      <h3 className="font-semibold text-indigo-800 mb-2">Tình huống lâm sàng {index + 1}:</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{item.caseStem}</p>
+                    </div>
+                    
+                    {/* Lặp qua các câu hỏi con trong nhóm */}
+                    {item.childQuestions.map((childQuestion, childIndex) => (
+                      <div key={childQuestion._id || childIndex} className="mb-6 pl-4">
+                         <QuestionItem
+                          question={childQuestion} 
+                          index={childIndex} 
+                          userAnswer={userAnswers[childQuestion._id]}
+                          onAnswerChange={handleAnswerChange}
+                          isAuthenticated={isAuthenticated}
+                          isChild={true} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+              return null;
+            })}
+            
             <div className="flex justify-end mt-8">
               <Button secondary onClick={() => navigate('/dashboard')} className="mr-4">Thoát</Button>
               <Button primary onClick={handleSubmitQuiz} className="py-3 px-6 text-lg">Nộp bài</Button>
             </div>
           </div>
         ) : (
+          // Chế độ ôn tập: Logic này đã hoạt động tốt
           <div>
+            {currentQuestion.caseStem && (currentQuestion.caseStem !== prevQuestion?.caseStem) && (
+              <div className="mb-6 p-4 border-l-4 border-indigo-500 bg-indigo-50 rounded-lg">
+                <h3 className="font-semibold text-indigo-800 mb-2">Tình huống lâm sàng:</h3>
+                <p className="text-gray-700 whitespace-pre-wrap">{currentQuestion.caseStem}</p>
+              </div>
+            )}
+
             <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 mb-6">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-semibold text-gray-800 flex-1 pr-4">
@@ -267,7 +309,7 @@ function QuizTakingPage() {
                     ? (option.isCorrect ? 'bg-green-100 border-green-400' : (isSelected ? 'bg-red-100 border-red-400' : 'border-gray-300 hover:bg-gray-50'))
                     : 'border-gray-300 hover:bg-gray-50';
                   return (
-                    <label key={option._id} className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors duration-200 ease-out ${feedbackClass}`}>
+                    <label key={option._id || idx} className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors duration-200 ease-out ${feedbackClass}`}>
                       <input
                         type={currentQuestion.questionType === 'multi-select' ? 'checkbox' : 'radio'}
                         name={`question-${currentQuestion._id}`}
@@ -308,7 +350,7 @@ function QuizTakingPage() {
                     <Button primary onClick={() => setShowFeedback(true)}>
                       Xong
                     </Button>
-                ) : currentQuestionIndex < quiz.questions.length - 1 ? (
+                ) : currentQuestionIndex < displayQuestions.length - 1 ? (
                     <Button primary onClick={handleNextQuestion}>
                       Câu tiếp theo
                     </Button>
