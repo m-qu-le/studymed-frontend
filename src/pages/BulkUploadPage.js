@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 
-// Hướng dẫn định dạng JSON giữ nguyên
+// ĐÃ SỬA: Hướng dẫn định dạng JSON chi tiết và đầy đủ hơn
 const jsonFormatGuide = `[
   {
     "title": "Bộ đề Hướng dẫn Chi tiết",
@@ -16,28 +16,66 @@ const jsonFormatGuide = `[
     "questions": [
       {
         "type": "single",
-        "questionText": "Đây là câu hỏi ĐƠN loại MỘT ĐÁP ÁN (single-choice).",
+        "questionText": "Đây là câu hỏi ĐƠN loại MỘT ĐÁP ÁN (single-choice). Tất cả các trường tùy chọn đều được điền.",
         "questionType": "single-choice",
-        "generalExplanation": "Giải thích chung cho câu hỏi.",
-        "tags": ["minh-hoa", "cau-hoi-don"],
+        "generalExplanation": "Đây là giải thích chung cho toàn bộ câu hỏi, sẽ hiện ra sau khi người dùng trả lời.",
+        "tags": ["minh-hoa", "cau-hoi-don", "day-du-truong"],
         "difficulty": "Thông hiểu",
         "options": [
-          { "text": "Lựa chọn 1 (Đúng)", "isCorrect": true, "feedback": "Feedback cho đáp án đúng." },
-          { "text": "Lựa chọn 2 (Sai)", "isCorrect": false, "feedback": "Feedback cho đáp án sai." }
+          { "text": "Lựa chọn 1 (Sai)", "isCorrect": false, "feedback": "Giải thích chi tiết tại sao lựa chọn này sai." },
+          { "text": "Lựa chọn 2 (Đúng)", "isCorrect": true, "feedback": "Giải thích chi tiết tại sao đây là đáp án đúng." },
+          { "text": "Lựa chọn 3 (Sai)", "isCorrect": false, "feedback": "Giải thích chi tiết tại sao lựa chọn này cũng sai." }
+        ]
+      },
+      {
+        "type": "single",
+        "questionText": "Đây là câu hỏi ĐƠN loại NHIỀU ĐÁP ÁN (multi-select). Có thể có nhiều 'isCorrect: true'.",
+        "questionType": "multi-select",
+        "tags": ["multi-select"],
+        "difficulty": "Vận dụng",
+        "options": [
+          { "text": "Lựa chọn A (Đáp án đúng 1/2)", "isCorrect": true },
+          { "text": "Lựa chọn B (Sai)", "isCorrect": false },
+          { "text": "Lựa chọn C (Đáp án đúng 2/2)", "isCorrect": true },
+          { "text": "Lựa chọn D (Sai)", "isCorrect": false }
+        ]
+      },
+      {
+        "type": "single",
+        "questionText": "Đây là câu hỏi ĐƠN loại ĐÚNG/SAI (true-false). Các lựa chọn là cố định.",
+        "questionType": "true-false",
+        "difficulty": "Nhận biết",
+        "options": [
+          { "text": "Đúng", "isCorrect": true },
+          { "text": "Sai", "isCorrect": false }
         ]
       },
       {
         "type": "group",
-        "caseStem": "Đây là phần mô tả tình huống lâm sàng chung (case stem).",
+        "caseStem": "Đây là phần mô tả tình huống lâm sàng chung (case stem). Nội dung này sẽ được hiển thị cùng với tất cả các câu hỏi con bên dưới.",
         "tags": ["case-study", "lam-sang"],
         "difficulty": "Vận dụng cao",
         "childQuestions": [
           {
-            "questionText": "Dựa vào case study trên, đây là câu hỏi con số 1.",
-            "questionType": "multi-select",
+            "questionText": "Dựa vào case study trên, đây là câu hỏi con số 1 (loại một đáp án).",
+            "questionType": "single-choice",
+            "tags": ["chan-doan"],
+            "difficulty": "Vận dụng",
+            "generalExplanation": "Giải thích chung cho câu hỏi con này.",
             "options": [
-              { "text": "Lựa chọn cho câu hỏi con (Đúng)", "isCorrect": true },
-              { "text": "Lựa chọn khác (Cũng đúng)", "isCorrect": true }
+              { "text": "Lựa chọn cho câu hỏi con 1 (Đúng)", "isCorrect": true, "feedback": "Feedback cho lựa chọn này." },
+              { "text": "Lựa chọn cho câu hỏi con 1 (Sai)", "isCorrect": false }
+            ]
+          },
+          {
+            "questionText": "Dựa vào case study trên, đây là câu hỏi con số 2 (loại nhiều đáp án).",
+            "questionType": "multi-select",
+            "tags": ["dieu-tri"],
+            "difficulty": "Vận dụng cao",
+            "options": [
+              { "text": "Lựa chọn cho câu hỏi con 2 (Đúng)", "isCorrect": true },
+              { "text": "Lựa chọn cho câu hỏi con 2 (Cũng đúng)", "isCorrect": true },
+              { "text": "Lựa chọn cho câu hỏi con 2 (Sai)", "isCorrect": false }
             ]
           }
         ]
@@ -48,17 +86,14 @@ const jsonFormatGuide = `[
 
 
 function BulkUploadPage() {
-  // STATE MỚI: Thêm state để quản lý loại nhập liệu và nội dung text
-  const [inputType, setInputType] = useState('file'); // 'file' hoặc 'paste'
+  const [inputType, setInputType] = useState('file');
   const [jsonText, setJsonText] = useState('');
-  
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileName, setFileName] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const { setAlert } = useAlert();
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-
   const [showFormatGuide, setShowFormatGuide] = useState(false);
 
   useEffect(() => {
@@ -68,13 +103,12 @@ function BulkUploadPage() {
     }
   }, [isAuthenticated, user, authLoading, navigate, setAlert]);
 
-  // CẬP NHẬT: Khi chọn file, xóa nội dung trong ô text
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file && file.type === 'application/json') {
       setSelectedFile(file);
       setFileName(file.name);
-      setJsonText(''); // Xóa text đã dán
+      setJsonText('');
     } else {
       setSelectedFile(null);
       setFileName('');
@@ -82,11 +116,10 @@ function BulkUploadPage() {
     }
   };
 
-  // HÀM MỚI: Xử lý khi dán text
   const handleTextChange = (event) => {
     setJsonText(event.target.value);
     if (selectedFile) {
-      setSelectedFile(null); // Xóa file đã chọn
+      setSelectedFile(null);
       setFileName('');
     }
   };
@@ -99,8 +132,7 @@ function BulkUploadPage() {
   const handleDragLeave = useCallback(() => {
     setIsDragOver(false);
   }, []);
-  
-  // CẬP NHẬT: Khi kéo thả file, xóa nội dung trong ô text
+
   const handleDrop = useCallback((event) => {
     event.preventDefault();
     setIsDragOver(false);
@@ -108,7 +140,7 @@ function BulkUploadPage() {
     if (file && file.type === 'application/json') {
       setSelectedFile(file);
       setFileName(file.name);
-      setJsonText(''); // Xóa text đã dán
+      setJsonText('');
     } else {
       setSelectedFile(null);
       setFileName('');
@@ -116,10 +148,8 @@ function BulkUploadPage() {
     }
   }, [setAlert]);
 
-  // CẬP NHẬT: Logic upload xử lý cả hai trường hợp
   const handleUpload = async () => {
     let quizzesData;
-
     try {
       if (inputType === 'file') {
         if (!selectedFile) {
@@ -128,20 +158,19 @@ function BulkUploadPage() {
         }
         const fileContent = await selectedFile.text();
         quizzesData = JSON.parse(fileContent);
-      } else { // inputType === 'paste'
+      } else {
         if (jsonText.trim() === '') {
           setAlert('Vui lòng dán nội dung JSON vào ô text.', 'warning');
           return;
         }
-        quizzesData = JSON.parse(jsonText); // Thêm try-catch ở đây để báo lỗi JSON không hợp lệ
+        quizzesData = JSON.parse(jsonText);
       }
     } catch (parseError) {
       console.error('Lỗi cú pháp JSON:', parseError);
       setAlert('Nội dung JSON không hợp lệ. Vui lòng kiểm tra lại cú pháp.', 'error');
       return;
     }
-    
-    // Gửi dữ liệu đã được parse lên API
+
     try {
       await api.post('/api/quizzes/bulk-upload', quizzesData);
       setAlert(`Đã nhập thành công ${Array.isArray(quizzesData) ? quizzesData.length : 1} bộ đề.`, 'success');
@@ -183,7 +212,6 @@ function BulkUploadPage() {
           </div>
         )}
 
-        {/* UI MỚI: Giao diện Tab để chọn phương thức nhập */}
         <div className="flex border-b border-gray-200 mb-4">
             <button 
                 onClick={() => setInputType('file')}
@@ -199,7 +227,6 @@ function BulkUploadPage() {
             </button>
         </div>
 
-        {/* Hiển thị UI tương ứng với Tab được chọn */}
         {inputType === 'file' && (
             <div
                 className={`border-2 border-dashed ${isDragOver ? 'border-primary-blue-active bg-blue-50' : 'border-gray-300 bg-gray-50'} rounded-lg p-8 text-center cursor-pointer transition-all duration-200`}
@@ -230,7 +257,6 @@ function BulkUploadPage() {
                 primary 
                 onClick={handleUpload} 
                 className="w-full" 
-                // Cập nhật điều kiện disabled
                 disabled={(inputType === 'file' && !selectedFile) || (inputType === 'paste' && jsonText.trim() === '')}
             >
                 Tải Lên và Xử Lý
