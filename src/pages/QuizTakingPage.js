@@ -187,7 +187,6 @@ function QuizTakingPage() {
   }
 
   const currentQuestion = displayQuestions[currentQuestionIndex];
-  const prevQuestion = displayQuestions[currentQuestionIndex - 1];
 
   return (
     <div className="min-h-screen bg-soft-gray p-4 flex flex-col items-center">
@@ -226,10 +225,8 @@ function QuizTakingPage() {
         </div>
 
         {quizMode === 'test' ? (
-          // ĐÃ SỬA: Logic hiển thị cho test mode, lặp qua bộ đề gốc để giữ cấu trúc nhóm
           <div>
             {originalQuiz.questions.map((item, index) => {
-              // Nếu là câu hỏi đơn, hiển thị QuestionItem
               if (item.type === 'single') {
                 return (
                   <div key={item._id || index} className="mb-8">
@@ -244,17 +241,14 @@ function QuizTakingPage() {
                 );
               }
               
-              // Nếu là nhóm câu hỏi (case study)
               if (item.type === 'group') {
                 return (
                   <div key={item._id || index} className="mb-8 p-4 border-l-4 border-indigo-500 bg-indigo-50 rounded-lg">
-                    {/* Hiển thị tình huống lâm sàng */}
                     <div className="mb-6">
                       <h3 className="font-semibold text-indigo-800 mb-2">Tình huống lâm sàng {index + 1}:</h3>
                       <p className="text-gray-700 whitespace-pre-wrap">{item.caseStem}</p>
                     </div>
                     
-                    {/* Lặp qua các câu hỏi con trong nhóm */}
                     {item.childQuestions.map((childQuestion, childIndex) => (
                       <div key={childQuestion._id || childIndex} className="mb-6 pl-4">
                          <QuestionItem
@@ -279,9 +273,10 @@ function QuizTakingPage() {
             </div>
           </div>
         ) : (
-          // Chế độ ôn tập: Logic này đã hoạt động tốt
+          // Chế độ ôn tập
           <div>
-            {currentQuestion.caseStem && (currentQuestion.caseStem !== prevQuestion?.caseStem) && (
+            {/* ĐÃ SỬA LỖI: Bỏ điều kiện so sánh với câu hỏi trước */}
+            {currentQuestion.caseStem && (
               <div className="mb-6 p-4 border-l-4 border-indigo-500 bg-indigo-50 rounded-lg">
                 <h3 className="font-semibold text-indigo-800 mb-2">Tình huống lâm sàng:</h3>
                 <p className="text-gray-700 whitespace-pre-wrap">{currentQuestion.caseStem}</p>
